@@ -1,0 +1,35 @@
+{
+  "rounds": [
+    {
+      "id": "QUALIFIER",
+      "threshold": 1500,
+      "trialDurationMs": 20000
+    },
+    {
+      "id": "SEMIFINAL",
+      "threshold": 1900,
+      "trialDurationMs": 20000
+    },
+    {
+      "id": "FINAL",
+      "threshold": 0,
+      "trialDurationMs": 25000
+    }
+  ],
+  "zeus": {
+    "throws": [5, 5, 5],
+    "bandStart": [0.24, 0.16, 0.10],
+    "bandEnd": [0.12, 0.08, 0.05],
+    "driftSpeed": [1.0, 1.4, 1.8]
+  },
+  "pilot": {
+    "baseSpeed": [5.0, 6.5, 8.0],
+    "speedStepMs": 7000,
+    "coinRate": 0.8
+  },
+  "joker": {
+    "ruleSwitchMs": 7000,
+    "gridSize": 4,
+    "penalty": 35
+  }
+}
