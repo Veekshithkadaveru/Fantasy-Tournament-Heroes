@@ -18,8 +18,8 @@
   ],
   "zeus": {
     "throws": [5, 5, 5],
-    "bandStart": [0.24, 0.16, 0.10],
-    "bandEnd": [0.12, 0.08, 0.05],
+    "bandStart": 0.24,
+    "bandEnd": 0.10,
     "driftSpeed": [1.0, 1.4, 1.8]
   },
   "pilot": {

@@ -11,10 +11,10 @@ android {
 
     defaultConfig {
         applicationId = "app.krafted.fantasyheroestournament"
-        minSdk = 24
-        targetSdk = 37
-        versionCode = 1
-        versionName = "1.0"
+        minSdk = 26
+        targetSdk = 35
+        versionCode = 2
+        versionName = "2.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
