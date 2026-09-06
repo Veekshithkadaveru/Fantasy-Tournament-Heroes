@@ -25,7 +25,22 @@ data class UserRecords(
     val tutorialSeen: Boolean = false
 )
 
-class RecordsStore(private val context: Context) {
+interface IRecordsStore {
+    val userRecordsFlow: Flow<UserRecords>
+    suspend fun recordCompletedRun(
+        rank: String,
+        grandTotal: Int,
+        zeusScore: Int,
+        pilotScore: Int,
+        jokerScore: Int
+    )
+    suspend fun setSoundOn(enabled: Boolean)
+    suspend fun setVibrateOn(enabled: Boolean)
+    suspend fun setTutorialSeen(seen: Boolean)
+    suspend fun resetRecords()
+}
+
+class RecordsStore(private val context: Context) : IRecordsStore {
 
     object PreferencesKeys {
         val BEST_RANK = stringPreferencesKey("best_rank")
@@ -39,7 +54,7 @@ class RecordsStore(private val context: Context) {
         val TUTORIAL_SEEN = booleanPreferencesKey("tutorial_seen")
     }
 
-    val userRecordsFlow: Flow<UserRecords> = context.recordsDataStore.data.map { prefs ->
+    override val userRecordsFlow: Flow<UserRecords> = context.recordsDataStore.data.map { prefs ->
         UserRecords(
             bestRank = prefs[PreferencesKeys.BEST_RANK] ?: "NONE",
             bestGrandTotal = prefs[PreferencesKeys.BEST_GRAND_TOTAL] ?: 0,
@@ -53,7 +68,7 @@ class RecordsStore(private val context: Context) {
         )
     }
 
-    suspend fun recordCompletedRun(
+    override suspend fun recordCompletedRun(
         rank: String,
         grandTotal: Int,
         zeusScore: Int,
@@ -87,25 +102,25 @@ class RecordsStore(private val context: Context) {
         }
     }
 
-    suspend fun setSoundOn(enabled: Boolean) {
+    override suspend fun setSoundOn(enabled: Boolean) {
         context.recordsDataStore.edit { prefs ->
             prefs[PreferencesKeys.SOUND_ON] = enabled
         }
     }
 
-    suspend fun setVibrateOn(enabled: Boolean) {
+    override suspend fun setVibrateOn(enabled: Boolean) {
         context.recordsDataStore.edit { prefs ->
             prefs[PreferencesKeys.VIBRATE_ON] = enabled
         }
     }
 
-    suspend fun setTutorialSeen(seen: Boolean) {
+    override suspend fun setTutorialSeen(seen: Boolean) {
         context.recordsDataStore.edit { prefs ->
             prefs[PreferencesKeys.TUTORIAL_SEEN] = seen
         }
     }
 
-    suspend fun resetRecords() {
+    override suspend fun resetRecords() {
         context.recordsDataStore.edit { prefs ->
             prefs[PreferencesKeys.BEST_RANK] = "NONE"
             prefs[PreferencesKeys.BEST_GRAND_TOTAL] = 0
