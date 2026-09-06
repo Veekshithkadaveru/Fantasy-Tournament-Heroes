@@ -1,5 +1,6 @@
 *.iml
 .gradle
+.kotlin/
 /local.properties
 /.idea/caches
 /.idea/libraries
@@ -17,3 +18,13 @@ DEVELOPMENT_PLAN.md
 .gradle
 Mix_1
 Fantasy_Heroes_Tournament_PRD_v2.md
+.idea/.name
+.idea/AndroidProjectSystem.xml
+.idea/compiler.xml
+.idea/deploymentTargetSelector.xml
+.idea/deviceManager.xml
+.idea/gradle.xml
+.idea/inspectionProfiles/
+.idea/markdown.xml
+.idea/runConfigurations.xml
+.idea
