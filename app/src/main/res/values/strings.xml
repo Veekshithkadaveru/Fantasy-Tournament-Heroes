@@ -4,5 +4,6 @@
     <string name="picker_title">FANTASY HEROES</string>
     <string name="picker_zeus">Charge and release. Strike inside the band.</string>
     <string name="picker_pilot">Steer the corridor. Collect coins, dodge storms.</string>
-    <string name="picker_pending">Joker, the bracket and the ceremony arrive in later phases.</string>
+    <string name="picker_joker">Read the banner. Tap what the rule wants, nothing else.</string>
+    <string name="picker_pending">The bracket and the ceremony arrive in later phases.</string>
 </resources>

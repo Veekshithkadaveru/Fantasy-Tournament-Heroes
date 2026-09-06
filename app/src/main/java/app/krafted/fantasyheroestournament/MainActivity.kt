@@ -24,12 +24,13 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.krafted.fantasyheroestournament.trial.joker.JokerTrialRoute
 import app.krafted.fantasyheroestournament.trial.pilot.PilotTrialRoute
 import app.krafted.fantasyheroestournament.trial.zeus.ZeusTrialRoute
 import app.krafted.fantasyheroestournament.ui.theme.FantasyHeroesTournamentTheme
 import androidx.compose.ui.graphics.Color as UiColor
 
-private enum class Trial { ZEUS, PILOT }
+private enum class Trial { ZEUS, PILOT, JOKER }
 
 private val Night = UiColor(0xFF080F21)
 private val Panel = UiColor(0xFF111C32)
@@ -50,6 +51,7 @@ class MainActivity : ComponentActivity() {
                 when (trial) {
                     Trial.ZEUS -> ZeusTrialRoute(lifecycle)
                     Trial.PILOT -> PilotTrialRoute(lifecycle)
+                    Trial.JOKER -> JokerTrialRoute(lifecycle)
                     null -> TrialPicker { trial = it }
                 }
             }
@@ -69,6 +71,7 @@ private fun TrialPicker(onPick: (Trial) -> Unit) {
             Spacer(Modifier.height(6.dp))
             PickerCard(R.string.zeus_title, R.string.picker_zeus) { onPick(Trial.ZEUS) }
             PickerCard(R.string.pilot_title, R.string.picker_pilot) { onPick(Trial.PILOT) }
+            PickerCard(R.string.joker_title, R.string.picker_joker) { onPick(Trial.JOKER) }
             Text(stringResource(R.string.picker_pending), color = Muted, fontSize = 11.sp,
                 modifier = Modifier.padding(top = 8.dp))
         }
