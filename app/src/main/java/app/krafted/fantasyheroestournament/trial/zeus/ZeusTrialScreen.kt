@@ -39,6 +39,9 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import app.krafted.fantasyheroestournament.data.TournamentConfig
+import app.krafted.fantasyheroestournament.data.TrialConfigLoader
+import app.krafted.fantasyheroestournament.tournament.TrialSession
 import app.krafted.fantasyheroestournament.R
 import kotlinx.coroutines.isActive
 import kotlin.math.ceil
@@ -52,7 +55,17 @@ internal val White = Color(0xFFF6F4EE)
 internal val Miss = Color(0xFFDBA4A3)
 
 @Composable
-fun ZeusTrialRoute(lifecycle: Lifecycle, viewModel: ZeusViewModel = viewModel()) {
+fun ZeusTrialRoute(
+    lifecycle: Lifecycle, viewModel: ZeusViewModel = viewModel(),
+    session: TrialSession? = null,
+    config: TournamentConfig = TrialConfigLoader.defaultConfig,
+    onTournamentComplete: ((Int) -> Unit)? = null
+) {
+    var prepared by remember(session?.id) { mutableStateOf(session == null) }
+    LaunchedEffect(session?.id) {
+        if (session != null) viewModel.prepareTournament(session, config)
+        prepared = true
+    }
     val state by viewModel.state.collectAsState()
     val preferences by viewModel.preferences.collectAsState()
     DisposableEffect(lifecycle, viewModel) {
@@ -82,10 +95,11 @@ fun ZeusTrialRoute(lifecycle: Lifecycle, viewModel: ZeusViewModel = viewModel())
         }
         handledStrikes = current.strikes.size
     }
-    state?.let { value ->
+    state?.takeIf { prepared }?.let { value ->
         ZeusTrialScreen(value, viewModel::start, viewModel::hold, viewModel::release,
             viewModel::cancelCharge, viewModel::pause, viewModel::resume,
-            viewModel::restart, viewModel::selectRound)
+            viewModel::restart, viewModel::selectRound,
+            onTournamentComplete = onTournamentComplete?.let { complete -> { complete(value.score) } })
     } ?: Box(Modifier.fillMaxSize().background(Night), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(20.dp)) {
             CircularProgressIndicator(color = Gold)
@@ -98,10 +112,13 @@ fun ZeusTrialRoute(lifecycle: Lifecycle, viewModel: ZeusViewModel = viewModel())
 fun ZeusTrialScreen(
     state: ZeusState, onStart: () -> Unit, onHold: () -> Unit, onRelease: () -> Unit,
     onCancelCharge: () -> Unit, onPause: () -> Unit, onResume: () -> Unit,
-    onRestart: () -> Unit, onSelectRound: (Int) -> Unit
+    onRestart: () -> Unit, onSelectRound: (Int) -> Unit,
+    onTournamentComplete: (() -> Unit)? = null
 ) {
-    BackHandler(state.phase != ZeusPhase.READY) {
-        if (!state.paused && state.phase != ZeusPhase.COMPLETE) onPause()
+    var showReadyPause by remember { mutableStateOf(false) }
+    BackHandler(state.phase != ZeusPhase.READY || onTournamentComplete != null) {
+        if (state.phase == ZeusPhase.READY) showReadyPause = true
+        else if (!state.paused && state.phase != ZeusPhase.COMPLETE) onPause()
     }
     Box(Modifier.fillMaxSize().background(Night)) {
         Image(painterResource(R.drawable.back_3), null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop, alpha = .24f)
@@ -127,14 +144,16 @@ fun ZeusTrialScreen(
                 StrikeHistory(state)
                 FeedbackText(state)
                 ChargeControl(state, onStart, onHold, onRelease, onCancelCharge)
-                if (state.phase == ZeusPhase.READY) RoundSelector(state.roundIndex, onSelectRound)
+                if (state.phase == ZeusPhase.READY && onTournamentComplete == null) RoundSelector(state.roundIndex, onSelectRound)
                 else Text(stringResource(R.string.zeus_center_hint), color = Muted, fontSize = 11.sp,
                     textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
                 Spacer(Modifier.height(4.dp))
             }
         }
-        if (state.paused) TrialPauseDialog(onResume, onRestart)
-        if (state.phase == ZeusPhase.COMPLETE) TrialCompleteDialog(state, onRestart, onSelectRound)
+        if (state.paused || showReadyPause) TrialPauseDialog(
+            onResume = { showReadyPause = false; onResume() },
+            onRestart = onRestart, onTournamentComplete = onTournamentComplete)
+        if (state.phase == ZeusPhase.COMPLETE) TrialCompleteDialog(state, onRestart, onSelectRound, onTournamentComplete)
     }
 }
 

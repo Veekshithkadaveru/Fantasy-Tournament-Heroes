@@ -100,20 +100,21 @@ internal fun RoundSelector(selected: Int, onSelect: (Int) -> Unit) {
 }
 
 @Composable
-internal fun TrialPauseDialog(onResume: () -> Unit, onRestart: () -> Unit) {
+internal fun TrialPauseDialog(onResume: () -> Unit, onRestart: () -> Unit, onTournamentComplete: (() -> Unit)? = null) {
     GameDialog(onDismiss = onResume) {
         BoltIcon(Gold, Modifier.size(42.dp))
         Eyebrow(stringResource(R.string.zeus_paused), Gold)
         Text(stringResource(R.string.zeus_pause_hint), color = White, textAlign = TextAlign.Center, fontSize = 16.sp, lineHeight = 24.sp)
         GoldButton(stringResource(R.string.zeus_resume), onResume)
-        Text(stringResource(R.string.zeus_restart), color = Muted, fontSize = 12.sp,
-            modifier = Modifier.clip(RoundedCornerShape(10.dp)).clickable(role = Role.Button, onClick = onRestart).padding(16.dp))
+        Text(stringResource(if (onTournamentComplete != null) R.string.tournament_bank_and_leave else R.string.zeus_restart), color = Muted, fontSize = 12.sp,
+            modifier = Modifier.clip(RoundedCornerShape(10.dp)).clickable(role = Role.Button, onClick = onTournamentComplete ?: onRestart).padding(16.dp))
     }
 }
 
 @Composable
-internal fun TrialCompleteDialog(state: ZeusState, onRestart: () -> Unit, onSelectRound: (Int) -> Unit) {
-    GameDialog(onDismiss = onRestart) {
+internal fun TrialCompleteDialog(state: ZeusState, onRestart: () -> Unit, onSelectRound: (Int) -> Unit,
+    onTournamentComplete: (() -> Unit)? = null) {
+    GameDialog(onDismiss = onTournamentComplete ?: onRestart) {
         Box(Modifier.size(78.dp).background(Gold.copy(alpha = .08f), CircleShape).border(1.dp, Gold.copy(alpha = .5f), CircleShape), contentAlignment = Alignment.Center) {
             BoltIcon(Gold, Modifier.size(42.dp))
         }
@@ -128,9 +129,13 @@ internal fun TrialCompleteDialog(state: ZeusState, onRestart: () -> Unit, onSele
             state.strikes.count { it.isHit && !it.isPerfect }, state.strikes.count { !it.isHit }), color = White, fontSize = 13.sp, textAlign = TextAlign.Center)
         val unused = state.totalThrows - state.strikes.size
         if (unused > 0) Text(pluralStringResource(R.plurals.zeus_unthrown, unused, unused), color = Muted, fontSize = 12.sp)
-        GoldButton(stringResource(R.string.zeus_replay), onRestart)
-        Eyebrow(stringResource(R.string.zeus_difficulty))
-        RoundSelector(state.roundIndex, onSelectRound)
+        if (onTournamentComplete != null) {
+            GoldButton(stringResource(R.string.tournament_bank_and_continue), onTournamentComplete)
+        } else {
+            GoldButton(stringResource(R.string.zeus_replay), onRestart)
+            Eyebrow(stringResource(R.string.zeus_difficulty))
+            RoundSelector(state.roundIndex, onSelectRound)
+        }
     }
 }
 

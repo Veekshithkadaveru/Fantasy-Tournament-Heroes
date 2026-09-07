@@ -89,20 +89,21 @@ internal fun RoundSelector(selected: Int, onSelect: (Int) -> Unit) {
 }
 
 @Composable
-internal fun TrialPauseDialog(onResume: () -> Unit, onRestart: () -> Unit) {
+internal fun TrialPauseDialog(onResume: () -> Unit, onRestart: () -> Unit, onTournamentComplete: (() -> Unit)? = null) {
     GameDialog(onDismiss = onResume) {
         JesterIcon(Gold, Modifier.size(42.dp))
         Eyebrow(stringResource(R.string.joker_paused), Gold)
         Text(stringResource(R.string.joker_pause_hint), color = White, textAlign = TextAlign.Center, fontSize = 16.sp, lineHeight = 24.sp)
         GoldButton(stringResource(R.string.joker_resume), onResume)
-        Text(stringResource(R.string.joker_restart), color = Muted, fontSize = 12.sp,
-            modifier = Modifier.clip(RoundedCornerShape(10.dp)).clickable(role = Role.Button, onClick = onRestart).padding(16.dp))
+        Text(stringResource(if (onTournamentComplete != null) R.string.tournament_bank_and_leave else R.string.joker_restart), color = Muted, fontSize = 12.sp,
+            modifier = Modifier.clip(RoundedCornerShape(10.dp)).clickable(role = Role.Button, onClick = onTournamentComplete ?: onRestart).padding(16.dp))
     }
 }
 
 @Composable
-internal fun TrialCompleteDialog(state: JokerState, onRestart: () -> Unit, onSelectRound: (Int) -> Unit) {
-    GameDialog(onDismiss = onRestart) {
+internal fun TrialCompleteDialog(state: JokerState, onRestart: () -> Unit, onSelectRound: (Int) -> Unit,
+    onTournamentComplete: (() -> Unit)? = null) {
+    GameDialog(onDismiss = onTournamentComplete ?: onRestart) {
         Box(Modifier.size(78.dp).background(Gold.copy(alpha = .08f), CircleShape).border(1.dp, Gold.copy(alpha = .5f), CircleShape), contentAlignment = Alignment.Center) {
             JesterIcon(Gold, Modifier.size(42.dp))
         }
@@ -121,9 +122,13 @@ internal fun TrialCompleteDialog(state: JokerState, onRestart: () -> Unit, onSel
         if (state.freezeBonuses > 0) Text(pluralStringResource(R.plurals.joker_freeze_claimed,
             state.freezeBonuses, state.freezeBonuses, state.freezeBonuses * RuleEngine.FREEZE_BONUS),
             color = Mint, fontSize = 12.sp)
-        GoldButton(stringResource(R.string.joker_replay), onRestart)
-        Eyebrow(stringResource(R.string.joker_difficulty))
-        RoundSelector(state.roundIndex, onSelectRound)
+        if (onTournamentComplete != null) {
+            GoldButton(stringResource(R.string.tournament_bank_and_continue), onTournamentComplete)
+        } else {
+            GoldButton(stringResource(R.string.joker_replay), onRestart)
+            Eyebrow(stringResource(R.string.joker_difficulty))
+            RoundSelector(state.roundIndex, onSelectRound)
+        }
     }
 }
 

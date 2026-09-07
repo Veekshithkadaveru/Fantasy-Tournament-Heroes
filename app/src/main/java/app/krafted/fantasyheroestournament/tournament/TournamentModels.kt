@@ -41,6 +41,11 @@ data class TrialResultData(
     val details: String = ""
 )
 
+/** Identifies one attempt, including retries of the same round and trial. */
+data class TrialSession(val id: Long, val round: TournamentRound, val trial: TrialType)
+
+enum class RecordSaveStatus { NOT_REQUESTED, SAVING, SAVED, FAILED }
+
 data class RoundResultData(
     val round: TournamentRound,
     val threshold: Int,
@@ -50,8 +55,16 @@ data class RoundResultData(
     val jokerScore: Int? = null
 ) {
     val roundScore: Int get() = (zeusScore ?: 0) + (pilotScore ?: 0) + (jokerScore ?: 0)
-    val isPassed: Boolean get() = roundScore >= threshold
+    val isPassed: Boolean get() = isCompleted && (round == TournamentRound.FINAL || roundScore >= threshold)
     val isCompleted: Boolean get() = zeusScore != null && pilotScore != null && jokerScore != null
+    val completedTrialCount: Int get() = listOfNotNull(zeusScore, pilotScore, jokerScore).size
+    val nextTrial: TrialType? get() = TrialType.entries.firstOrNull { scoreFor(it) == null }
+
+    fun scoreFor(trial: TrialType): Int? = when (trial) {
+        TrialType.ZEUS -> zeusScore
+        TrialType.PILOT -> pilotScore
+        TrialType.JOKER -> jokerScore
+    }
 }
 
 data class TournamentUiState(
@@ -66,8 +79,13 @@ data class TournamentUiState(
     val lastCompletedTrialResult: TrialResultData? = null,
     val finalRank: Rank? = null,
     val isRunActive: Boolean = false,
+    val runId: Long = 0,
+    val activeSession: TrialSession? = null,
+    val recordSaveStatus: RecordSaveStatus = RecordSaveStatus.NOT_REQUESTED,
     val userRecords: UserRecords = UserRecords()
 ) {
     val grandTotalScore: Int
         get() = roundsData.values.sumOf { it.roundScore }
+
+    val currentRoundData: RoundResultData get() = roundsData.getValue(currentRound)
 }

@@ -42,6 +42,9 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import app.krafted.fantasyheroestournament.data.TournamentConfig
+import app.krafted.fantasyheroestournament.data.TrialConfigLoader
+import app.krafted.fantasyheroestournament.tournament.TrialSession
 import app.krafted.fantasyheroestournament.R
 import kotlinx.coroutines.isActive
 import kotlin.math.ceil
@@ -55,7 +58,17 @@ internal val Muted = Color(0xFFC0A3AB)
 internal val White = Color(0xFFF6F4EE)
 
 @Composable
-fun PilotTrialRoute(lifecycle: Lifecycle, viewModel: PilotViewModel = viewModel()) {
+fun PilotTrialRoute(
+    lifecycle: Lifecycle, viewModel: PilotViewModel = viewModel(),
+    session: TrialSession? = null,
+    config: TournamentConfig = TrialConfigLoader.defaultConfig,
+    onTournamentComplete: ((Int) -> Unit)? = null
+) {
+    var prepared by remember(session?.id) { mutableStateOf(session == null) }
+    LaunchedEffect(session?.id) {
+        if (session != null) viewModel.prepareTournament(session, config)
+        prepared = true
+    }
     val state by viewModel.state.collectAsState()
     val preferences by viewModel.preferences.collectAsState()
     DisposableEffect(lifecycle, viewModel) {
@@ -88,9 +101,10 @@ fun PilotTrialRoute(lifecycle: Lifecycle, viewModel: PilotViewModel = viewModel(
         handledBonuses = bonuses
         handledCrash = current.isDead
     }
-    state?.let { value ->
+    state?.takeIf { prepared }?.let { value ->
         PilotTrialScreen(value, viewModel::start, viewModel::steer, viewModel::steerTo,
-            viewModel::pause, viewModel::resume, viewModel::restart, viewModel::selectRound)
+            viewModel::pause, viewModel::resume, viewModel::restart, viewModel::selectRound,
+            onTournamentComplete = onTournamentComplete?.let { complete -> { complete(value.totalScore) } })
     } ?: Box(Modifier.fillMaxSize().background(Night), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(20.dp)) {
             CircularProgressIndicator(color = Gold)
@@ -102,10 +116,13 @@ fun PilotTrialRoute(lifecycle: Lifecycle, viewModel: PilotViewModel = viewModel(
 @Composable
 fun PilotTrialScreen(
     state: PilotState, onStart: () -> Unit, onSteer: (Float) -> Unit, onSteerTo: (Float) -> Unit,
-    onPause: () -> Unit, onResume: () -> Unit, onRestart: () -> Unit, onSelectRound: (Int) -> Unit
+    onPause: () -> Unit, onResume: () -> Unit, onRestart: () -> Unit, onSelectRound: (Int) -> Unit,
+    onTournamentComplete: (() -> Unit)? = null
 ) {
-    BackHandler(state.phase != PilotPhase.READY) {
-        if (!state.paused && state.phase != PilotPhase.COMPLETE) onPause()
+    var showReadyPause by remember { mutableStateOf(false) }
+    BackHandler(state.phase != PilotPhase.READY || onTournamentComplete != null) {
+        if (state.phase == PilotPhase.READY) showReadyPause = true
+        else if (!state.paused && state.phase != PilotPhase.COMPLETE) onPause()
     }
     Box(Modifier.fillMaxSize().background(Night)) {
         Image(painterResource(R.drawable.back_1), null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop, alpha = .24f)
@@ -131,14 +148,16 @@ fun PilotTrialScreen(
                 StreakTrack(state)
                 FeedbackText(state)
                 SteeringControl(state, onStart, onSteerTo)
-                if (state.phase == PilotPhase.READY) RoundSelector(state.roundIndex, onSelectRound)
+                if (state.phase == PilotPhase.READY && onTournamentComplete == null) RoundSelector(state.roundIndex, onSelectRound)
                 else Text(stringResource(R.string.pilot_center_hint), color = Muted, fontSize = 11.sp,
                     textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
                 Spacer(Modifier.height(4.dp))
             }
         }
-        if (state.paused) TrialPauseDialog(onResume, onRestart)
-        if (state.phase == PilotPhase.COMPLETE) TrialCompleteDialog(state, onRestart, onSelectRound)
+        if (state.paused || showReadyPause) TrialPauseDialog(
+            onResume = { showReadyPause = false; onResume() },
+            onRestart = onRestart, onTournamentComplete = onTournamentComplete)
+        if (state.phase == PilotPhase.COMPLETE) TrialCompleteDialog(state, onRestart, onSelectRound, onTournamentComplete)
     }
 }
 
