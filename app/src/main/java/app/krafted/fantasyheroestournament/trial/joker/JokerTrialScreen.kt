@@ -44,7 +44,10 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.krafted.fantasyheroestournament.data.TournamentConfig
 import app.krafted.fantasyheroestournament.data.TrialConfigLoader
+import app.krafted.fantasyheroestournament.tournament.HandOffToTournament
+import app.krafted.fantasyheroestournament.tournament.TrialOutcome
 import app.krafted.fantasyheroestournament.tournament.TrialSession
+import app.krafted.fantasyheroestournament.tournament.TrialStat
 import app.krafted.fantasyheroestournament.R
 import kotlinx.coroutines.isActive
 import kotlin.math.ceil
@@ -65,7 +68,7 @@ fun JokerTrialRoute(
     lifecycle: Lifecycle, viewModel: JokerViewModel = viewModel(),
     session: TrialSession? = null,
     config: TournamentConfig = TrialConfigLoader.defaultConfig,
-    onTournamentComplete: ((Int) -> Unit)? = null
+    onTournamentComplete: ((TrialOutcome) -> Unit)? = null
 ) {
     var prepared by remember(session?.id) { mutableStateOf(session == null) }
     LaunchedEffect(session?.id) {
@@ -107,10 +110,30 @@ fun JokerTrialRoute(
         handledTaps = taps
         handledRules = current.rules.size
     }
+    // Resolved up front: the hand-off runs from a click, long after composition.
+    val timeUp = stringResource(R.string.joker_time_up)
+    val survivedLabel = stringResource(R.string.joker_headline_survived)
+    val correctLabel = stringResource(R.string.joker_stat_correct)
+    val wrongLabel = stringResource(R.string.joker_stat_wrong)
+    val freezeLabel = stringResource(R.string.joker_stat_freeze)
+    val rulesLabel = stringResource(R.string.joker_stat_rules)
     state?.takeIf { prepared }?.let { value ->
         JokerTrialScreen(value, viewModel::start, viewModel::tap, viewModel::pause,
             viewModel::resume, viewModel::restart, viewModel::selectRound,
-            onTournamentComplete = onTournamentComplete?.let { complete -> { complete(value.score) } })
+            onTournamentComplete = onTournamentComplete?.let { bank ->
+                {
+                    bank(TrialOutcome(
+                        score = value.score,
+                        headline = if (value.timedOut) timeUp else survivedLabel,
+                        stats = listOf(
+                            TrialStat(correctLabel, value.correctTaps.toString()),
+                            TrialStat(wrongLabel, value.wrongTaps.toString()),
+                            TrialStat(freezeLabel, value.freezeBonuses.toString()),
+                            TrialStat(rulesLabel, value.rules.size.toString())
+                        )
+                    ))
+                }
+            })
     } ?: Box(Modifier.fillMaxSize().background(Night), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(20.dp)) {
             CircularProgressIndicator(color = Gold)
@@ -165,7 +188,11 @@ fun JokerTrialScreen(
         if (state.paused || showReadyPause) TrialPauseDialog(
             onResume = { showReadyPause = false; onResume() },
             onRestart = onRestart, onTournamentComplete = onTournamentComplete)
-        if (state.phase == JokerPhase.COMPLETE) TrialCompleteDialog(state, onRestart, onSelectRound, onTournamentComplete)
+        if (state.phase == JokerPhase.COMPLETE) {
+            // In a tournament the result belongs to the bracket, not to a dialog here.
+            if (onTournamentComplete != null) HandOffToTournament(onTournamentComplete)
+            else TrialCompleteDialog(state, onRestart, onSelectRound)
+        }
     }
 }
 

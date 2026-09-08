@@ -112,9 +112,8 @@ internal fun TrialPauseDialog(onResume: () -> Unit, onRestart: () -> Unit, onTou
 }
 
 @Composable
-internal fun TrialCompleteDialog(state: ZeusState, onRestart: () -> Unit, onSelectRound: (Int) -> Unit,
-    onTournamentComplete: (() -> Unit)? = null) {
-    GameDialog(onDismiss = onTournamentComplete ?: onRestart) {
+internal fun TrialCompleteDialog(state: ZeusState, onRestart: () -> Unit, onSelectRound: (Int) -> Unit) {
+    GameDialog(onDismiss = onRestart) {
         Box(Modifier.size(78.dp).background(Gold.copy(alpha = .08f), CircleShape).border(1.dp, Gold.copy(alpha = .5f), CircleShape), contentAlignment = Alignment.Center) {
             BoltIcon(Gold, Modifier.size(42.dp))
         }
@@ -129,13 +128,11 @@ internal fun TrialCompleteDialog(state: ZeusState, onRestart: () -> Unit, onSele
             state.strikes.count { it.isHit && !it.isPerfect }, state.strikes.count { !it.isHit }), color = White, fontSize = 13.sp, textAlign = TextAlign.Center)
         val unused = state.totalThrows - state.strikes.size
         if (unused > 0) Text(pluralStringResource(R.plurals.zeus_unthrown, unused, unused), color = Muted, fontSize = 12.sp)
-        if (onTournamentComplete != null) {
-            GoldButton(stringResource(R.string.tournament_bank_and_continue), onTournamentComplete)
-        } else {
-            GoldButton(stringResource(R.string.zeus_replay), onRestart)
-            Eyebrow(stringResource(R.string.zeus_difficulty))
-            RoundSelector(state.roundIndex, onSelectRound)
-        }
+        // A tournament run never reaches here: the trial hands its score straight
+        // to the bracket's own result screen.
+        GoldButton(stringResource(R.string.zeus_replay), onRestart)
+        Eyebrow(stringResource(R.string.zeus_difficulty))
+        RoundSelector(state.roundIndex, onSelectRound)
     }
 }
 

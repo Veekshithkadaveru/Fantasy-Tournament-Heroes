@@ -61,4 +61,9 @@
     <string name="zeus_strike_pending">Strike %1$d: ready</string>
     <string name="zeus_strike_scored">Strike %1$d. Points: %2$d.</string>
     <string name="zeus_loading">Summoning the storm…</string>
+    <string name="zeus_headline_thrown">EVERY BOLT THROWN</string>
+    <string name="zeus_stat_perfect">PERFECT</string>
+    <string name="zeus_stat_hits">HITS</string>
+    <string name="zeus_stat_misses">MISSES</string>
+    <string name="zeus_stat_best">BEST STRIKE</string>
 </resources>

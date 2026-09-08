@@ -57,4 +57,9 @@
     <string name="pilot_replay">FLY AGAIN</string>
     <string name="pilot_difficulty">CHOOSE YOUR CHALLENGE</string>
     <string name="pilot_loading">Warming the engine…</string>
+    <string name="pilot_headline_flown">FLEW THE FULL CORRIDOR</string>
+    <string name="pilot_stat_airborne">AIRBORNE</string>
+    <string name="pilot_stat_coins">COINS</string>
+    <string name="pilot_stat_coin_points">COIN POINTS</string>
+    <string name="pilot_stat_bonuses">STREAK BONUSES</string>
 </resources>

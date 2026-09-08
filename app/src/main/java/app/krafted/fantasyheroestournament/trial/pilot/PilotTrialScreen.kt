@@ -44,7 +44,10 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.krafted.fantasyheroestournament.data.TournamentConfig
 import app.krafted.fantasyheroestournament.data.TrialConfigLoader
+import app.krafted.fantasyheroestournament.tournament.HandOffToTournament
+import app.krafted.fantasyheroestournament.tournament.TrialOutcome
 import app.krafted.fantasyheroestournament.tournament.TrialSession
+import app.krafted.fantasyheroestournament.tournament.TrialStat
 import app.krafted.fantasyheroestournament.R
 import kotlinx.coroutines.isActive
 import kotlin.math.ceil
@@ -62,7 +65,7 @@ fun PilotTrialRoute(
     lifecycle: Lifecycle, viewModel: PilotViewModel = viewModel(),
     session: TrialSession? = null,
     config: TournamentConfig = TrialConfigLoader.defaultConfig,
-    onTournamentComplete: ((Int) -> Unit)? = null
+    onTournamentComplete: ((TrialOutcome) -> Unit)? = null
 ) {
     var prepared by remember(session?.id) { mutableStateOf(session == null) }
     LaunchedEffect(session?.id) {
@@ -101,10 +104,35 @@ fun PilotTrialRoute(
         handledBonuses = bonuses
         handledCrash = current.isDead
     }
+    // Resolved up front: the hand-off runs from a click, long after composition.
+    val stormLabel = stringResource(R.string.pilot_result_storm)
+    val wallLabel = stringResource(R.string.pilot_result_wall)
+    val flownLabel = stringResource(R.string.pilot_headline_flown)
+    val airborneLabel = stringResource(R.string.pilot_stat_airborne)
+    val coinsLabel = stringResource(R.string.pilot_stat_coins)
+    val coinPointsLabel = stringResource(R.string.pilot_stat_coin_points)
+    val bonusLabel = stringResource(R.string.pilot_stat_bonuses)
     state?.takeIf { prepared }?.let { value ->
         PilotTrialScreen(value, viewModel::start, viewModel::steer, viewModel::steerTo,
             viewModel::pause, viewModel::resume, viewModel::restart, viewModel::selectRound,
-            onTournamentComplete = onTournamentComplete?.let { complete -> { complete(value.totalScore) } })
+            onTournamentComplete = onTournamentComplete?.let { bank ->
+                {
+                    bank(TrialOutcome(
+                        score = value.totalScore,
+                        headline = when (value.impact) {
+                            PilotImpact.CLOUD -> stormLabel
+                            PilotImpact.WALL -> wallLabel
+                            PilotImpact.NONE -> flownLabel
+                        },
+                        stats = listOf(
+                            TrialStat(airborneLabel, "%.1fs".format(value.survivalTimeSeconds)),
+                            TrialStat(coinsLabel, value.coinsCollected.toString()),
+                            TrialStat(coinPointsLabel, value.coinPoints.toString()),
+                            TrialStat(bonusLabel, (value.coinStreak / PilotEngine.STREAK_LENGTH).toString())
+                        )
+                    ))
+                }
+            })
     } ?: Box(Modifier.fillMaxSize().background(Night), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(20.dp)) {
             CircularProgressIndicator(color = Gold)
@@ -157,7 +185,11 @@ fun PilotTrialScreen(
         if (state.paused || showReadyPause) TrialPauseDialog(
             onResume = { showReadyPause = false; onResume() },
             onRestart = onRestart, onTournamentComplete = onTournamentComplete)
-        if (state.phase == PilotPhase.COMPLETE) TrialCompleteDialog(state, onRestart, onSelectRound, onTournamentComplete)
+        if (state.phase == PilotPhase.COMPLETE) {
+            // In a tournament the result belongs to the bracket, not to a dialog here.
+            if (onTournamentComplete != null) HandOffToTournament(onTournamentComplete)
+            else TrialCompleteDialog(state, onRestart, onSelectRound)
+        }
     }
 }
 

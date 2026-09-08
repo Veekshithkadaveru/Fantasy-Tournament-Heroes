@@ -101,9 +101,8 @@ internal fun TrialPauseDialog(onResume: () -> Unit, onRestart: () -> Unit, onTou
 }
 
 @Composable
-internal fun TrialCompleteDialog(state: JokerState, onRestart: () -> Unit, onSelectRound: (Int) -> Unit,
-    onTournamentComplete: (() -> Unit)? = null) {
-    GameDialog(onDismiss = onTournamentComplete ?: onRestart) {
+internal fun TrialCompleteDialog(state: JokerState, onRestart: () -> Unit, onSelectRound: (Int) -> Unit) {
+    GameDialog(onDismiss = onRestart) {
         Box(Modifier.size(78.dp).background(Gold.copy(alpha = .08f), CircleShape).border(1.dp, Gold.copy(alpha = .5f), CircleShape), contentAlignment = Alignment.Center) {
             JesterIcon(Gold, Modifier.size(42.dp))
         }
@@ -122,13 +121,11 @@ internal fun TrialCompleteDialog(state: JokerState, onRestart: () -> Unit, onSel
         if (state.freezeBonuses > 0) Text(pluralStringResource(R.plurals.joker_freeze_claimed,
             state.freezeBonuses, state.freezeBonuses, state.freezeBonuses * RuleEngine.FREEZE_BONUS),
             color = Mint, fontSize = 12.sp)
-        if (onTournamentComplete != null) {
-            GoldButton(stringResource(R.string.tournament_bank_and_continue), onTournamentComplete)
-        } else {
-            GoldButton(stringResource(R.string.joker_replay), onRestart)
-            Eyebrow(stringResource(R.string.joker_difficulty))
-            RoundSelector(state.roundIndex, onSelectRound)
-        }
+        // A tournament run never reaches here: the trial hands its score straight
+        // to the bracket's own result screen.
+        GoldButton(stringResource(R.string.joker_replay), onRestart)
+        Eyebrow(stringResource(R.string.joker_difficulty))
+        RoundSelector(state.roundIndex, onSelectRound)
     }
 }
 

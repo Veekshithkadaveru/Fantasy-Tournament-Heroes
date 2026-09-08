@@ -96,7 +96,12 @@ class TournamentViewModel(
     }
 
     /** The UI must return the session it launched, never infer it from a newer state. */
-    fun completeTrial(session: TrialSession, rawScore: Int, details: String = ""): Boolean {
+    fun completeTrial(
+        session: TrialSession,
+        rawScore: Int,
+        details: String = "",
+        stats: List<TrialStat> = emptyList()
+    ): Boolean {
         val score = rawScore.coerceIn(0, 1000)
         val accepted = transition { state ->
             val round = state.currentRoundData
@@ -118,7 +123,7 @@ class TournamentViewModel(
             state.copy(
                 roundsData = state.roundsData + (state.currentRound to scored.copy(status = status)),
                 activeSession = null,
-                lastCompletedTrialResult = TrialResultData(session.trial, score, details),
+                lastCompletedTrialResult = TrialResultData(session.trial, score, details, stats),
                 currentScreen = TournamentScreen.TRIAL_RESULT
             )
         } ?: return false
@@ -129,9 +134,14 @@ class TournamentViewModel(
     }
 
     // Synchronous callers still receive the same state validation as the session-based UI.
-    fun completeTrial(trialType: TrialType, rawScore: Int, details: String = "") {
+    fun completeTrial(
+        trialType: TrialType,
+        rawScore: Int,
+        details: String = "",
+        stats: List<TrialStat> = emptyList()
+    ) {
         val session = _uiState.value.activeSession?.takeIf { it.trial == trialType } ?: return
-        completeTrial(session, rawScore, details)
+        completeTrial(session, rawScore, details, stats)
     }
 
     fun onTrialResultDismissed() {

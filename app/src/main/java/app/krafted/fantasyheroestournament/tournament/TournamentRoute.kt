@@ -1,27 +1,22 @@
 package app.krafted.fantasyheroestournament.tournament
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Text
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
-import app.krafted.fantasyheroestournament.R
 import app.krafted.fantasyheroestournament.data.RecordsStore
 import app.krafted.fantasyheroestournament.data.TournamentConfig
 import app.krafted.fantasyheroestournament.data.TrialConfigLoader
@@ -30,8 +25,25 @@ import app.krafted.fantasyheroestournament.trial.joker.JokerTrialRoute
 import app.krafted.fantasyheroestournament.trial.pilot.PilotTrialRoute
 import app.krafted.fantasyheroestournament.trial.zeus.ZeusTrialRoute
 import app.krafted.fantasyheroestournament.ui.bracket.BracketScreen
+import app.krafted.fantasyheroestournament.ui.menu.MainMenuScreen
+import app.krafted.fantasyheroestournament.ui.menu.RecordsScreen
+import app.krafted.fantasyheroestournament.ui.menu.SettingsScreen
+import app.krafted.fantasyheroestournament.ui.menu.SplashScreen
+import app.krafted.fantasyheroestournament.ui.results.RoundResultScreen
+import app.krafted.fantasyheroestournament.ui.results.TrialIntroScreen
+import app.krafted.fantasyheroestournament.ui.results.TrialResultScreen
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+
+/** How long a returning player's trial intro waits before entering on its own. */
+private const val IntroAutoEnterSeconds = 6
+
+/**
+ * What is on screen, stripped of the numbers inside it. Scores change every
+ * frame; this does not, so it can drive [AnimatedContent] without restarting a
+ * transition on every point scored.
+ */
+private data class Scene(val screen: TournamentScreen, val session: TrialSession? = null)
 
 @Composable
 fun TournamentRoute(lifecycle: Lifecycle) {
@@ -40,16 +52,14 @@ fun TournamentRoute(lifecycle: Lifecycle) {
     LaunchedEffect(context) {
         config = withContext(Dispatchers.IO) { TrialConfigLoader.loadConfig(context) }
     }
+    // The title card holds until the config is in hand, and survives rotation once shown.
+    var titleShown by rememberSaveable { mutableStateOf(false) }
     val loadedConfig = config
-    if (loadedConfig == null) {
-        Box(Modifier.fillMaxSize().background(Color(0xFF070D1B)), contentAlignment = Alignment.Center) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(18.dp)) {
-                CircularProgressIndicator(color = Color(0xFFEBC781))
-                Text(stringResource(R.string.tournament_loading), color = Color(0xFFEBC781))
-            }
-        }
+    if (!titleShown || loadedConfig == null) {
+        SplashScreen(ready = loadedConfig != null) { titleShown = true }
         return
     }
+
     val factory = remember(context, loadedConfig) {
         object : ViewModelProvider.Factory {
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -61,41 +71,123 @@ fun TournamentRoute(lifecycle: Lifecycle) {
     }
     val tournament: TournamentViewModel = viewModel(factory = factory)
     val state by tournament.uiState.collectAsState()
+    val scene = Scene(state.currentScreen, state.activeSession.takeIf {
+        state.currentScreen == TournamentScreen.TRIAL_GAMEPLAY
+    })
 
-    // C2 uses the trials' existing ready/result presentations. Dedicated C3 screens can take
-    // over these transitions later without changing the tournament's scoring contract.
-    AnimatedContent(targetState = state.activeSession, modifier = Modifier.fillMaxSize(),
+    AnimatedContent(targetState = scene, modifier = Modifier.fillMaxSize(),
         transitionSpec = {
-            (fadeIn(tween(360, delayMillis = 80)) + scaleIn(tween(440), initialScale = .975f)) togetherWith
-                fadeOut(tween(220))
-        }, label = "tournament scene") { session ->
-        if (session == null) {
-            BracketScreen(
+            (fadeIn(tween(360, delayMillis = 90)) + scaleIn(tween(440), initialScale = .975f)) togetherWith
+                (fadeOut(tween(240)) + scaleOut(tween(300), targetScale = 1.015f)) using
+                SizeTransform(clip = false)
+        }, label = "tournament scene") { current ->
+        when (current.screen) {
+            // Splash is handled above; a state that somehow names it lands on the menu.
+            TournamentScreen.SPLASH, TournamentScreen.MAIN_MENU -> MainMenuScreen(
+                records = state.userRecords,
+                runActive = state.isRunActive,
+                onStart = tournament::startNewTournament,
+                onResume = { tournament.navigateTo(TournamentScreen.BRACKET) },
+                onRecords = { tournament.navigateTo(TournamentScreen.RECORDS) },
+                onSettings = { tournament.navigateTo(TournamentScreen.SETTINGS) }
+            )
+
+            TournamentScreen.RECORDS -> RecordsScreen(
+                records = state.userRecords,
+                onBack = { tournament.navigateTo(TournamentScreen.MAIN_MENU) }
+            )
+
+            TournamentScreen.SETTINGS -> SettingsScreen(
+                records = state.userRecords,
+                onSoundChange = tournament::setSoundOn,
+                onVibrateChange = tournament::setVibrateOn,
+                onReset = tournament::resetRecords,
+                onBack = { tournament.navigateTo(TournamentScreen.MAIN_MENU) }
+            )
+
+            // The ceremony still reads from the bracket's completed-run presentation
+            // until D1 replaces it; the state machine already routes here.
+            TournamentScreen.BRACKET, TournamentScreen.FINAL_CEREMONY -> BracketScreen(
                 state = state, config = tournament.tournamentConfig,
                 onStart = tournament::startNewTournament,
-                onPlay = { trial ->
-                    tournament.selectTrial(trial)
-                    tournament.launchTrialGameplay()
-                },
+                onPlay = tournament::selectTrial,
                 onAdvance = tournament::advanceToNextRound,
                 onRetry = tournament::retryCurrentRound,
-                onLeave = tournament::abandonTournament,
+                onLeave = {
+                    if (state.isRunActive) tournament.abandonTournament()
+                    else tournament.navigateTo(TournamentScreen.MAIN_MENU)
+                },
+                onMenu = { tournament.navigateTo(TournamentScreen.MAIN_MENU) },
                 onRetrySaving = tournament::retrySavingRecords
             )
-        } else {
-            val finish: (Int) -> Unit = { score ->
-                if (tournament.completeTrial(session, score)) tournament.onTrialResultDismissed()
-            }
-            key(session.id) {
-                when (session.trial) {
-                    TrialType.ZEUS -> ZeusTrialRoute(lifecycle, session = session,
-                        config = tournament.tournamentConfig, onTournamentComplete = finish)
-                    TrialType.PILOT -> PilotTrialRoute(lifecycle, session = session,
-                        config = tournament.tournamentConfig, onTournamentComplete = finish)
-                    TrialType.JOKER -> JokerTrialRoute(lifecycle, session = session,
-                        config = tournament.tournamentConfig, onTournamentComplete = finish)
+
+            TournamentScreen.TRIAL_INTRO -> TrialIntroScreen(
+                trial = state.activeTrial,
+                round = state.currentRound,
+                roundData = state.currentRoundData,
+                durationSeconds = ((tournament.tournamentConfig.rounds
+                    .getOrNull(state.currentRound.roundIndex)?.trialDurationMs ?: 20_000L) / 1000).toInt(),
+                // A first-time player reads at their own pace; after that the run keeps moving.
+                autoEnterSeconds = if (state.userRecords.tutorialSeen) IntroAutoEnterSeconds else 0,
+                onBegin = {
+                    tournament.setTutorialSeen(true)
+                    tournament.launchTrialGameplay()
+                },
+                onBack = { tournament.navigateTo(TournamentScreen.BRACKET) }
+            )
+
+            TournamentScreen.TRIAL_GAMEPLAY -> current.session?.let { session ->
+                val finish: (TrialOutcome) -> Unit = { outcome ->
+                    tournament.completeTrial(session, outcome.score, outcome.headline, outcome.stats)
                 }
+                key(session.id) {
+                    when (session.trial) {
+                        TrialType.ZEUS -> ZeusTrialRoute(lifecycle, session = session,
+                            config = tournament.tournamentConfig, onTournamentComplete = finish)
+                        TrialType.PILOT -> PilotTrialRoute(lifecycle, session = session,
+                            config = tournament.tournamentConfig, onTournamentComplete = finish)
+                        TrialType.JOKER -> JokerTrialRoute(lifecycle, session = session,
+                            config = tournament.tournamentConfig, onTournamentComplete = finish)
+                    }
+                }
+            }
+
+            TournamentScreen.TRIAL_RESULT -> state.lastCompletedTrialResult?.let { result ->
+                TrialResultScreen(
+                    result = result,
+                    round = state.currentRound,
+                    roundData = state.currentRoundData,
+                    grandTotal = state.grandTotalScore,
+                    // Only a genuine improvement counts; on a first run every
+                    // trial would otherwise beat a stored zero.
+                    personalBest = bestFor(result.trialType, state).let { it > 0 && result.score > it },
+                    onContinue = tournament::onTrialResultDismissed
+                )
+            }
+
+            // Advancing moves the current round and retrying clears its scores,
+            // both while this screen is still fading out. It keeps the verdict it
+            // was opened with rather than repainting as the next empty scorecard.
+            TournamentScreen.ROUND_RESULT -> {
+                val decided = remember { state.currentRound }
+                val scorecard = remember { state.currentRoundData }
+                val bankedTotal = remember { state.grandTotalScore }
+                RoundResultScreen(
+                    round = decided,
+                    data = scorecard,
+                    grandTotal = bankedTotal,
+                    nextRound = TournamentRound.entries.getOrNull(decided.roundIndex + 1),
+                    onAdvance = tournament::advanceToNextRound,
+                    onRetry = tournament::retryCurrentRound,
+                    onViewBracket = { tournament.navigateTo(TournamentScreen.BRACKET) }
+                )
             }
         }
     }
+}
+
+private fun bestFor(trial: TrialType, state: TournamentUiState): Int = when (trial) {
+    TrialType.ZEUS -> state.userRecords.bestZeus
+    TrialType.PILOT -> state.userRecords.bestPilot
+    TrialType.JOKER -> state.userRecords.bestJoker
 }

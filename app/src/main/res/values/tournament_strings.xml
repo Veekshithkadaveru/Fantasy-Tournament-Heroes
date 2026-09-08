@@ -56,7 +56,6 @@
     <string name="tournament_medal_earned_hint">%1$s secured across all nine trials.</string>
     <string name="tournament_trials_banked">%1$d OF %2$d TRIALS BANKED</string>
     <string name="tournament_all_banked">All nine trials complete. Your scores are banked.</string>
-    <string name="tournament_bank_and_continue">BANK SCORE &amp; CONTINUE</string>
     <string name="tournament_bank_and_leave">End trial &amp; bank current score</string>
     <string name="tournament_info">Tournament rules</string>
     <string name="tournament_rules_title">Earn your crown</string>
@@ -64,7 +63,8 @@
     <string name="tournament_got_it">LET’S PLAY</string>
     <string name="tournament_leave">Leave tournament</string>
     <string name="tournament_leave_title">Leave this journey?</string>
-    <string name="tournament_leave_body">Your current tournament scores will be lost. Your saved records stay safe.</string>
+    <string name="tournament_park_run">BACK TO MENU · KEEP MY RUN</string>
+    <string name="tournament_leave_body">Step out to the menu and your run waits for you. Leaving the tournament discards its scores; your saved records stay safe either way.</string>
     <string name="tournament_keep_playing">KEEP PLAYING</string>
     <string name="tournament_leave_confirm">Leave tournament</string>
     <string name="tournament_saving">Saving your records…</string>

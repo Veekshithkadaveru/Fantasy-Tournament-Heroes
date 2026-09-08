@@ -1,0 +1,78 @@
+<resources>
+    <!-- Trial intro -->
+    <string name="intro_back">Back to the bracket</string>
+    <string name="intro_round_line">ROUND %1$d · %2$s</string>
+    <string name="intro_trial_counter">TRIAL %1$d OF 3</string>
+    <string name="intro_up_next">UP NEXT</string>
+    <string name="intro_fact_time">TIME</string>
+    <string name="intro_fact_seconds">%1$dS</string>
+    <string name="intro_fact_worth">WORTH</string>
+    <string name="intro_fact_tuning">TUNING</string>
+    <string name="intro_how_to_play">HOW TO PLAY</string>
+    <string name="intro_stakes">THIS ROUND</string>
+    <string name="intro_stakes_final">The Final always completes. Every point here lands on your medal total.</string>
+    <string name="intro_stakes_clear">Target already cleared. Finish all three trials to advance.</string>
+    <string name="intro_stakes_gap">%1$s more points clears the %2$s.</string>
+    <string name="intro_begin">ENTER THE ARENA</string>
+    <string name="intro_begin_hint">The trial starts when you are ready.</string>
+    <string name="intro_auto_enter">Entering in %1$ds · tap to go now</string>
+
+    <string name="intro_zeus_1">Hold to charge.</string>
+    <string name="intro_zeus_1_body">The power meter climbs for as long as you hold the bolt.</string>
+    <string name="intro_zeus_2">Release inside the band.</string>
+    <string name="intro_zeus_2_body">Let go while the meter sits in the drifting gold band. A hit pays 130.</string>
+    <string name="intro_zeus_3">Find the bright centre.</string>
+    <string name="intro_zeus_3_body">The centre of the band is the perfect zone and pays 200 instead.</string>
+
+    <string name="intro_pilot_1">Drag to steer.</string>
+    <string name="intro_pilot_1_body">Your finger flies the plane across the corridor. Walls close in as you go.</string>
+    <string name="intro_pilot_2">Stay airborne.</string>
+    <string name="intro_pilot_2_body">Every second in the air banks 15 points. Coins add more, and eight in a row pays a bonus.</string>
+    <string name="intro_pilot_3">One hit ends the flight.</string>
+    <string name="intro_pilot_3_body">A storm cloud or a wall finishes the run, so bank points early.</string>
+
+    <string name="intro_joker_1">Read the banner.</string>
+    <string name="intro_joker_1_body">The rule sits above the grid and changes every few seconds.</string>
+    <string name="intro_joker_2">Tap only what it asks for.</string>
+    <string name="intro_joker_2_body">A correct tap pays 50. A wrong one costs 35, so read before you reach.</string>
+    <string name="intro_joker_3">Freeze when told.</string>
+    <string name="intro_joker_3_body">When the banner says FREEZE, touch nothing at all and take 150.</string>
+
+    <!-- Trial result -->
+    <string name="result_trial_complete">%1$s · TRIAL COMPLETE</string>
+    <string name="result_headline_great">Masterful.</string>
+    <string name="result_headline_good">Well played.</string>
+    <string name="result_headline_fair">Points on the board.</string>
+    <string name="result_headline_soft">Every point counts.</string>
+    <string name="result_banked_label">BANKED THIS TRIAL</string>
+    <string name="result_of_trial_max">/ 1,000 PTS</string>
+    <string name="result_personal_best">NEW PERSONAL BEST</string>
+    <string name="result_round_standing">ROUND STANDING</string>
+    <string name="result_grand_so_far">%1$s TOTAL</string>
+    <string name="result_next_trial">NEXT · %1$s</string>
+    <string name="result_round_summary">SEE ROUND SUMMARY</string>
+    <string name="result_claim_medal">CLAIM YOUR MEDAL</string>
+    <plurals name="result_trials_left">
+        <item quantity="one">%1$d trial left in this round</item>
+        <item quantity="other">%1$d trials left in this round</item>
+    </plurals>
+    <string name="result_round_done">All three trials done · %1$s</string>
+    <string name="result_all_nine_done">All nine trials complete</string>
+    <string name="result_gate_final">NO TARGET TO CLEAR</string>
+    <string name="result_hint_final">The Final always completes. Your total decides the medal.</string>
+    <string name="result_hint_cleared">Target cleared. This round is yours.</string>
+    <string name="result_hint_on_pace">Target already reached. Finish the round to lock it in.</string>
+    <string name="result_hint_short">%1$s short of the target. You can replay this round.</string>
+    <string name="result_hint_needs">%1$s more to clear the %2$s.</string>
+
+    <!-- Round result -->
+    <string name="round_complete_eyebrow">%1$s COMPLETE</string>
+    <string name="round_passed_title">Round cleared.</string>
+    <string name="round_failed_title">So close.</string>
+    <string name="round_passed_body">Target beaten by %1$s points. The %2$s is open.</string>
+    <string name="round_passed_body_last">Target beaten by %1$s points.</string>
+    <string name="round_failed_body">%1$s short. Replay the %2$s — every other round stays banked.</string>
+    <string name="round_trial_scores">TRIAL SCORES</string>
+    <string name="round_grand_total">%1$s TOTAL</string>
+    <string name="round_view_bracket">VIEW THE BRACKET</string>
+</resources>

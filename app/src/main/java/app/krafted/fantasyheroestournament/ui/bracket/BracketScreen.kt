@@ -16,7 +16,6 @@ import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -38,21 +37,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import app.krafted.fantasyheroestournament.R
 import app.krafted.fantasyheroestournament.data.TournamentConfig
 import app.krafted.fantasyheroestournament.domain.Rank
 import app.krafted.fantasyheroestournament.tournament.*
+import app.krafted.fantasyheroestournament.ui.theme.*
 import java.util.Locale
 
-/** A perfect run: three rounds, three trials each, a thousand points a trial. */
-private const val MAX_TOTAL = 9000f
-private const val MAX_ROUND = 3000f
-private const val TRIALS_PER_RUN = 9
-
-private val ContentWidth = 620.dp
-private val PagePadding = 20.dp
+/** The gutter the round spine and its beacons live in. */
 private val RailColumn = 48.dp
 
 @Composable
@@ -64,6 +56,7 @@ fun BracketScreen(
     onAdvance: () -> Unit,
     onRetry: () -> Unit,
     onLeave: () -> Unit,
+    onMenu: () -> Unit,
     onRetrySaving: () -> Unit
 ) {
     var showRules by rememberSaveable { mutableStateOf(false) }
@@ -73,8 +66,10 @@ fun BracketScreen(
     }
     var entered by remember(state.runId) { mutableStateOf(false) }
     LaunchedEffect(state.runId) { entered = true }
-    BackHandler(state.isRunActive) { showLeave = true }
     val completed = state.finalRank != null
+    // A finished run has nothing left to lose, so it leaves without being asked twice.
+    val leave = { if (completed) onLeave() else showLeave = true }
+    BackHandler(state.isRunActive || completed) { leave() }
     val scroll = rememberScrollState()
 
     Box(Modifier.fillMaxSize()) {
@@ -82,7 +77,7 @@ fun BracketScreen(
         Column(Modifier.fillMaxSize().safeDrawingPadding(), horizontalAlignment = Alignment.CenterHorizontally) {
             // The masthead stays put; only the bracket beneath it travels.
             Box(Modifier.widthIn(max = ContentWidth).fillMaxWidth().padding(horizontal = PagePadding)) {
-                TopBar(state.isRunActive, { showLeave = true }, { showRules = true })
+                TopBar(state.isRunActive || completed, leave, { showRules = true })
             }
             Box(Modifier.weight(1f)) {
                 Column(Modifier.fillMaxSize().verticalScroll(scroll), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -127,24 +122,27 @@ fun BracketScreen(
             }
             ActionDock(state, onStart, onPlay, onAdvance, onRetry, onRetrySaving)
         }
-        if (showRules) BracketDialog(onDismiss = { showRules = false }) {
+        if (showRules) TournamentDialog(onDismiss = { showRules = false }) {
             CrownEmblem(Modifier.size(54.dp))
             DialogTitle(stringResource(R.string.tournament_rules_title))
             Text(stringResource(R.string.tournament_rules_body), color = Muted,
                 fontSize = TextSize.body, lineHeight = LineHeight.body)
             TournamentButton(stringResource(R.string.tournament_got_it), { showRules = false })
         }
-        if (showLeave) BracketDialog(onDismiss = { showLeave = false }) {
+        if (showLeave) TournamentDialog(onDismiss = { showLeave = false }) {
             DialogTitle(stringResource(R.string.tournament_leave_title))
             Text(stringResource(R.string.tournament_leave_body), color = Muted, fontSize = TextSize.body,
                 lineHeight = LineHeight.body, textAlign = TextAlign.Center)
             TournamentButton(stringResource(R.string.tournament_keep_playing), { showLeave = false })
-            Text(stringResource(R.string.tournament_leave_confirm), color = Rose, fontSize = TextSize.label,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.clip(RoundedCornerShape(12.dp)).clickable(role = Role.Button) {
-                    showLeave = false
-                    onLeave()
-                }.padding(horizontal = Space.xl, vertical = Space.lg))
+            // Stepping out to the menu is not the same as throwing the run away.
+            SecondaryButton(stringResource(R.string.tournament_park_run), {
+                showLeave = false
+                onMenu()
+            })
+            GhostButton(stringResource(R.string.tournament_leave_confirm), {
+                showLeave = false
+                onLeave()
+            }, color = Rose)
         }
     }
 }
@@ -162,14 +160,7 @@ private fun TopBar(canLeave: Boolean, onLeave: () -> Unit, onInfo: () -> Unit) {
                 lineHeight = LineHeight.label, fontWeight = FontWeight.Black, letterSpacing = 2.sp)
             Overline(stringResource(R.string.tournament_eyebrow), Gold, Modifier.padding(top = 2.dp))
         }
-        if (canLeave) {
-            IconAction(stringResource(R.string.tournament_leave), onLeave) {
-                Canvas(Modifier.size(15.dp)) {
-                    drawLine(Muted, Offset(0f, 0f), Offset(size.width, size.height), 1.6.dp.toPx(), StrokeCap.Round)
-                    drawLine(Muted, Offset(size.width, 0f), Offset(0f, size.height), 1.6.dp.toPx(), StrokeCap.Round)
-                }
-            }
-        }
+        if (canLeave) CloseAction(stringResource(R.string.tournament_leave), onLeave)
         IconAction(stringResource(R.string.tournament_info), onInfo) {
             Text("i", color = Muted, fontFamily = Display, fontSize = TextSize.subhead,
                 lineHeight = LineHeight.subhead, textAlign = TextAlign.Center)
@@ -210,9 +201,10 @@ private fun TotalPanel(state: TournamentUiState) {
             Column(Modifier.weight(1f)) {
                 Overline(stringResource(R.string.tournament_grand_total), Gold)
                 Row(verticalAlignment = Alignment.Bottom, modifier = Modifier.padding(top = Space.xs)) {
-                    Text(points(score), color = Gold, fontSize = TextSize.display, lineHeight = LineHeight.display,
-                        fontWeight = FontWeight.Bold, fontFamily = Display,
-                        modifier = Modifier.semantics { contentDescription = points(state.grandTotalScore) })
+                    FittedText(points(score), Gold,
+                        Modifier.weight(1f, fill = false)
+                            .semantics { contentDescription = points(state.grandTotalScore) },
+                        maxSize = TextSize.display, minSize = TextSize.subhead, align = TextAlign.Start)
                     Text(stringResource(R.string.tournament_max_total), color = Faint, fontSize = TextSize.label,
                         lineHeight = LineHeight.label, fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(start = Space.sm, bottom = Space.sm))
@@ -425,24 +417,8 @@ private fun RoundScore(data: RoundResultData, accent: Color) {
             Text(stringResource(R.string.tournament_score_max), color = Faint, fontSize = TextSize.label,
                 lineHeight = LineHeight.label, modifier = Modifier.padding(bottom = 4.dp))
         }
-        Canvas(Modifier.padding(top = Space.md, bottom = Space.sm).fillMaxWidth().height(12.dp)
-            .semantics { progressBarRangeInfo = ProgressBarRangeInfo(data.roundScore.toFloat(), 0f..MAX_ROUND) }) {
-            val radius = CornerRadius(size.height / 2f)
-            drawRoundRect(Well, size = size, cornerRadius = radius)
-            drawRoundRect(Color.Black.copy(alpha = .4f), size = size, cornerRadius = radius, style = Stroke(1.dp.toPx()))
-            if (progress > 0f) {
-                val width = (size.width * progress).coerceAtLeast(size.height)
-                drawRoundRect(Brush.horizontalGradient(listOf(accent.copy(alpha = .55f), accent), endX = width),
-                    size = Size(width, size.height), cornerRadius = radius)
-            }
-            // The bar to clear, marked on the track it belongs to.
-            if (target > 0f) {
-                val x = size.width * target
-                drawLine(Ink, Offset(x, 0f), Offset(x, size.height), 3.5.dp.toPx())
-                drawLine(Parchment, Offset(x, 1.5.dp.toPx()), Offset(x, size.height - 1.5.dp.toPx()),
-                    1.5.dp.toPx(), StrokeCap.Round)
-            }
-        }
+        ScoreTrack(data.roundScore, MAX_ROUND, accent, Modifier.padding(top = Space.md, bottom = Space.sm),
+            target = data.threshold)
         Text(gateLabel(data), color = accent, fontSize = TextSize.overline, lineHeight = LineHeight.overline,
             letterSpacing = 1.sp, fontWeight = FontWeight.Bold)
     }
@@ -473,12 +449,12 @@ private fun HeroTile(trial: TrialType, score: Int?, next: Boolean, modifier: Mod
                 CheckEmblem(Modifier.size(11.dp))
             }
         }
-        Text(heroLabel(trial), color = if (score == null && !next) Muted else Parchment,
-            fontSize = TextSize.label, lineHeight = LineHeight.label, fontWeight = FontWeight.Bold,
+        FittedText(heroLabel(trial), if (score == null && !next) Muted else Parchment,
+            Modifier.fillMaxWidth(), maxSize = TextSize.label, minSize = 10.sp, family = null,
             letterSpacing = .5.sp)
-        Text(status, color = if (score != null) Mint else if (next) color else Faint,
-            fontSize = TextSize.overline, lineHeight = LineHeight.overline, textAlign = TextAlign.Center,
-            fontWeight = FontWeight.Bold)
+        FittedText(status, if (score != null) Mint else if (next) color else Faint,
+            Modifier.fillMaxWidth(), maxSize = TextSize.overline, minSize = 9.sp, family = null,
+            letterSpacing = 1.5.sp)
     }
 }
 
@@ -556,10 +532,13 @@ private fun MedalTile(tier: Rank, earned: Boolean, reached: Boolean, modifier: M
             if (tier == Rank.CHAMPION) CrownEmblem(Modifier.size(28.dp), if (lit) tint else tint.copy(alpha = .45f))
             else MedalEmblem(Modifier.size(30.dp), tint, lit)
         }
-        Text(rankLabel(tier), color = if (lit) tint else Faint, fontSize = TextSize.label,
-            lineHeight = LineHeight.label, fontWeight = FontWeight.Bold)
-        Text(if (tier == Rank.BRONZE) stringResource(R.string.tournament_bronze_requirement) else points(tier.threshold),
-            color = Faint, fontSize = TextSize.overline, lineHeight = LineHeight.overline)
+        FittedText(rankLabel(tier), if (lit) tint else Faint, Modifier.fillMaxWidth(),
+            maxSize = TextSize.label, minSize = 9.sp, family = null)
+        FittedText(
+            if (tier == Rank.BRONZE) stringResource(R.string.tournament_bronze_requirement)
+            else points(tier.threshold),
+            Faint, Modifier.fillMaxWidth(), maxSize = TextSize.overline, minSize = 8.sp,
+            family = null, weight = FontWeight.Normal)
     }
 }
 
@@ -621,47 +600,6 @@ private fun ActionDock(
 }
 
 @Composable
-private fun HairLine() {
-    Box(Modifier.fillMaxWidth().height(1.dp).background(Color.White.copy(alpha = .07f)))
-}
-
-@Composable
-internal fun roundLabel(round: TournamentRound): String = stringResource(when (round) {
-    TournamentRound.QUALIFIER -> R.string.tournament_qualifier
-    TournamentRound.SEMIFINAL -> R.string.tournament_semifinal
-    TournamentRound.FINAL -> R.string.tournament_final
-})
-
-@Composable
-internal fun heroLabel(trial: TrialType): String = stringResource(when (trial) {
-    TrialType.ZEUS -> R.string.zeus_title
-    TrialType.PILOT -> R.string.pilot_title
-    TrialType.JOKER -> R.string.joker_title
-})
-
-@Composable
-private fun difficultyLabel(round: TournamentRound): String = stringResource(when (round) {
-    TournamentRound.QUALIFIER -> R.string.tournament_easy
-    TournamentRound.SEMIFINAL -> R.string.tournament_medium
-    TournamentRound.FINAL -> R.string.tournament_hard
-})
-
-@Composable
-private fun rankLabel(rank: Rank): String = stringResource(when (rank) {
-    Rank.SILVER -> R.string.tournament_rank_silver
-    Rank.GOLD -> R.string.tournament_rank_gold
-    Rank.CHAMPION -> R.string.tournament_rank_champion
-    else -> R.string.tournament_rank_bronze
-})
-
-private fun medalTintOf(rank: Rank): Color = when (rank) {
-    Rank.SILVER -> SilverMetal
-    Rank.GOLD -> Gold
-    Rank.CHAMPION -> Amethyst
-    else -> Bronze
-}
-
-@Composable
 private fun medalHint(state: TournamentUiState, nextTier: Rank?): String {
     val earned = state.finalRank
     return when {
@@ -687,22 +625,4 @@ private fun roundHint(data: RoundResultData): String = when {
     data.round == TournamentRound.FINAL -> stringResource(R.string.tournament_final_hint)
     data.roundScore >= data.threshold -> stringResource(R.string.tournament_target_reached)
     else -> stringResource(R.string.tournament_points_needed, points(data.threshold - data.roundScore))
-}
-
-@Composable
-private fun DialogTitle(title: String) {
-    Text(title, color = Parchment, fontSize = TextSize.heading, lineHeight = LineHeight.heading,
-        fontFamily = Display, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
-}
-
-@Composable
-private fun BracketDialog(onDismiss: () -> Unit, content: @Composable ColumnScope.() -> Unit) {
-    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
-        Surface(Modifier.padding(Space.xl).widthIn(max = 440.dp).fillMaxWidth(), color = Ink,
-            shape = RoundedCornerShape(26.dp), border = BorderStroke(1.dp, Gold.copy(alpha = .4f))) {
-            Column(Modifier.verticalScroll(rememberScrollState()).padding(Space.xxl),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(Space.xl), content = content)
-        }
-    }
 }

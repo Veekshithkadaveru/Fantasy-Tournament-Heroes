@@ -76,4 +76,9 @@
     <string name="joker_replay">PLAY AGAIN</string>
     <string name="joker_difficulty">CHOOSE YOUR CHALLENGE</string>
     <string name="joker_loading">Shuffling the deck…</string>
+    <string name="joker_headline_survived">THE CHAOS HELD</string>
+    <string name="joker_stat_correct">CORRECT TAPS</string>
+    <string name="joker_stat_wrong">WRONG TAPS</string>
+    <string name="joker_stat_freeze">FREEZE BONUSES</string>
+    <string name="joker_stat_rules">RULES SEEN</string>
 </resources>

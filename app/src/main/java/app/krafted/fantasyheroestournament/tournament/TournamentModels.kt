@@ -35,10 +35,25 @@ enum class TournamentScreen {
     SETTINGS
 }
 
+/**
+ * One line of trial-flavoured detail — "Perfect strikes", "3". The trial that
+ * produced it resolves the copy, so the tournament never has to know what a
+ * perfect strike or a coin streak is.
+ */
+data class TrialStat(val label: String, val value: String)
+
+/** What a trial hands back when it ends: the score, a headline, and its detail. */
+data class TrialOutcome(
+    val score: Int,
+    val headline: String = "",
+    val stats: List<TrialStat> = emptyList()
+)
+
 data class TrialResultData(
     val trialType: TrialType,
     val score: Int,
-    val details: String = ""
+    val details: String = "",
+    val stats: List<TrialStat> = emptyList()
 )
 
 /** Identifies one attempt, including retries of the same round and trial. */

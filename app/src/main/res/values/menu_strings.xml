@@ -1,0 +1,66 @@
+<resources>
+    <!-- Splash -->
+    <string name="splash_loading">Preparing the arena…</string>
+
+    <!-- Main menu -->
+    <string name="menu_resume">RESUME TOURNAMENT</string>
+    <string name="menu_resume_hint">Your run is still in play.</string>
+    <string name="menu_start_hint">Three heroes, three rounds, under five minutes.</string>
+    <string name="menu_records">RECORDS</string>
+    <string name="menu_settings">SETTINGS</string>
+    <string name="menu_your_standing">YOUR STANDING</string>
+    <string name="menu_best_total">BEST TOTAL</string>
+    <plurals name="menu_runs_completed">
+        <item quantity="one">%1$d tournament completed</item>
+        <item quantity="other">%1$d tournaments completed</item>
+    </plurals>
+    <string name="menu_no_runs">No medal yet</string>
+    <string name="menu_no_runs_body">Finish all nine trials once and your first medal is recorded here.</string>
+    <string name="menu_footer">FULLY OFFLINE · NO ADS · v2.0</string>
+
+    <!-- Records -->
+    <string name="records_title">RECORDS</string>
+    <string name="records_eyebrow">HALL OF HEROES</string>
+    <string name="records_back">Back to the menu</string>
+    <string name="records_best_rank">BEST MEDAL</string>
+    <string name="records_unranked">Unranked</string>
+    <string name="records_best_total">BEST GRAND TOTAL</string>
+    <string name="records_trial_bests">BEST BY TRIAL</string>
+    <string name="records_career">CAREER</string>
+    <string name="records_runs">RUNS</string>
+    <string name="records_best_trial">TOP TRIAL</string>
+    <string name="records_medal">MEDAL</string>
+    <string name="records_none">—</string>
+    <string name="records_chase">%1$s more in one run reaches %2$s.</string>
+    <string name="records_champion_chase">Champion. There is nothing above this.</string>
+    <string name="records_empty_chase">Your first completed tournament sets the mark.</string>
+    <string name="records_empty_hint">Trial bests are recorded when a tournament run reaches the ceremony.</string>
+
+    <!-- Settings -->
+    <string name="settings_title">SETTINGS</string>
+    <string name="settings_eyebrow">SOUND, FEEL &amp; RECORDS</string>
+    <string name="settings_back">Back to the menu</string>
+    <string name="settings_feel">SOUND &amp; FEEL</string>
+    <string name="settings_sound">Sound effects</string>
+    <string name="settings_sound_body">Tones on strikes, coins and results.</string>
+    <string name="settings_vibrate">Vibration</string>
+    <string name="settings_vibrate_body">A short pulse on hits, crashes and banked scores.</string>
+    <string name="settings_records">RECORDS</string>
+    <string name="settings_reset_title">Reset saved records</string>
+    <plurals name="settings_reset_body">
+        <item quantity="one">%1$d completed run and a best total of %2$s are stored on this device.</item>
+        <item quantity="other">%1$d completed runs and a best total of %2$s are stored on this device.</item>
+    </plurals>
+    <string name="settings_reset_action">RESET RECORDS</string>
+    <string name="settings_reset_confirm_title">Clear every record?</string>
+    <string name="settings_reset_confirm_body">Your best medal, grand total, trial bests and run count are erased. Sound and vibration settings stay. This cannot be undone.</string>
+    <string name="settings_reset_keep">KEEP MY RECORDS</string>
+    <string name="settings_about">ABOUT</string>
+    <string name="settings_version">VERSION 2.0</string>
+    <string name="settings_credit_offline_label">CONNECTIVITY</string>
+    <string name="settings_credit_offline">Fully offline. No network permissions, no tracking.</string>
+    <string name="settings_credit_built_label">BUILT WITH</string>
+    <string name="settings_credit_built">Kotlin, Jetpack Compose and Compose Canvas.</string>
+    <string name="settings_credit_art_label">ARTWORK</string>
+    <string name="settings_credit_art">Mix_1 asset pack, with effects drawn on Canvas.</string>
+</resources>

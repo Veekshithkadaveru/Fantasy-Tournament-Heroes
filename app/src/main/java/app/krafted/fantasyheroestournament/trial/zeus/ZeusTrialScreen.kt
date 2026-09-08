@@ -41,7 +41,10 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.krafted.fantasyheroestournament.data.TournamentConfig
 import app.krafted.fantasyheroestournament.data.TrialConfigLoader
+import app.krafted.fantasyheroestournament.tournament.HandOffToTournament
+import app.krafted.fantasyheroestournament.tournament.TrialOutcome
 import app.krafted.fantasyheroestournament.tournament.TrialSession
+import app.krafted.fantasyheroestournament.tournament.TrialStat
 import app.krafted.fantasyheroestournament.R
 import kotlinx.coroutines.isActive
 import kotlin.math.ceil
@@ -59,7 +62,7 @@ fun ZeusTrialRoute(
     lifecycle: Lifecycle, viewModel: ZeusViewModel = viewModel(),
     session: TrialSession? = null,
     config: TournamentConfig = TrialConfigLoader.defaultConfig,
-    onTournamentComplete: ((Int) -> Unit)? = null
+    onTournamentComplete: ((TrialOutcome) -> Unit)? = null
 ) {
     var prepared by remember(session?.id) { mutableStateOf(session == null) }
     LaunchedEffect(session?.id) {
@@ -95,11 +98,31 @@ fun ZeusTrialRoute(
         }
         handledStrikes = current.strikes.size
     }
+    // Resolved up front: the hand-off runs from a click, long after composition.
+    val timeUp = stringResource(R.string.zeus_time_up)
+    val allThrown = stringResource(R.string.zeus_headline_thrown)
+    val perfectLabel = stringResource(R.string.zeus_stat_perfect)
+    val hitLabel = stringResource(R.string.zeus_stat_hits)
+    val missLabel = stringResource(R.string.zeus_stat_misses)
+    val bestLabel = stringResource(R.string.zeus_stat_best)
     state?.takeIf { prepared }?.let { value ->
         ZeusTrialScreen(value, viewModel::start, viewModel::hold, viewModel::release,
             viewModel::cancelCharge, viewModel::pause, viewModel::resume,
             viewModel::restart, viewModel::selectRound,
-            onTournamentComplete = onTournamentComplete?.let { complete -> { complete(value.score) } })
+            onTournamentComplete = onTournamentComplete?.let { bank ->
+                {
+                    bank(TrialOutcome(
+                        score = value.score,
+                        headline = if (value.timedOut) timeUp else allThrown,
+                        stats = listOf(
+                            TrialStat(perfectLabel, value.perfectCount.toString()),
+                            TrialStat(hitLabel, value.strikes.count { it.isHit && !it.isPerfect }.toString()),
+                            TrialStat(missLabel, value.strikes.count { !it.isHit }.toString()),
+                            TrialStat(bestLabel, (value.strikes.maxOfOrNull { it.points } ?: 0).toString())
+                        )
+                    ))
+                }
+            })
     } ?: Box(Modifier.fillMaxSize().background(Night), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(20.dp)) {
             CircularProgressIndicator(color = Gold)
@@ -153,7 +176,11 @@ fun ZeusTrialScreen(
         if (state.paused || showReadyPause) TrialPauseDialog(
             onResume = { showReadyPause = false; onResume() },
             onRestart = onRestart, onTournamentComplete = onTournamentComplete)
-        if (state.phase == ZeusPhase.COMPLETE) TrialCompleteDialog(state, onRestart, onSelectRound, onTournamentComplete)
+        if (state.phase == ZeusPhase.COMPLETE) {
+            // In a tournament the result belongs to the bracket, not to a dialog here.
+            if (onTournamentComplete != null) HandOffToTournament(onTournamentComplete)
+            else TrialCompleteDialog(state, onRestart, onSelectRound)
+        }
     }
 }
 
