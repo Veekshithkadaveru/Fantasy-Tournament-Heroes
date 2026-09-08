@@ -25,7 +25,6 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -39,9 +38,7 @@ import app.krafted.fantasyheroestournament.tournament.TournamentRound
 import app.krafted.fantasyheroestournament.tournament.TrialType
 import app.krafted.fantasyheroestournament.ui.theme.*
 import java.util.Locale
-import kotlin.math.sin
 
-private const val ConfettiCount = 46
 private const val ConfettiMillis = 2600
 
 /**
@@ -118,7 +115,7 @@ fun RoundResultScreen(
             }
             RoundDock(round, data, nextRound, onAdvance, onRetry, onViewBracket)
         }
-        if (passed) Confetti(confetti.value, Modifier.fillMaxSize())
+        if (passed) ConfettiFall(confetti.value, Modifier.fillMaxSize())
     }
 }
 
@@ -244,31 +241,6 @@ private fun RoundDock(
             })
             GhostButton(stringResource(R.string.round_view_bracket), onViewBracket,
                 Modifier.padding(top = Space.xs))
-        }
-    }
-}
-
-/**
- * A fall of gold and mint slips. Every particle derives from its index, so the
- * whole field animates off one value and never allocates per frame.
- */
-@Composable
-private fun Confetti(progress: Float, modifier: Modifier) {
-    if (progress <= 0f || progress >= 1f) return
-    Canvas(modifier) {
-        repeat(ConfettiCount) { i ->
-            val lane = ((i * .618034f) % 1f)
-            val lead = (i % 7) * .045f
-            val fall = (progress - lead) / (1f - lead)
-            if (fall <= 0f) return@repeat
-            val y = fall * (size.height + 80.dp.toPx()) - 40.dp.toPx()
-            val sway = sin((fall * 6f + i).toDouble()).toFloat() * 22.dp.toPx()
-            val color = when (i % 3) { 0 -> Gold; 1 -> Mint; else -> Parchment }
-            val slip = Size(5.dp.toPx(), 11.dp.toPx())
-            rotate(fall * 540f + i * 24f, Offset(lane * size.width + sway, y)) {
-                drawRect(color.copy(alpha = (1f - fall).coerceIn(0f, 1f) * .9f),
-                    Offset(lane * size.width + sway - slip.width / 2f, y - slip.height / 2f), slip)
-            }
         }
     }
 }

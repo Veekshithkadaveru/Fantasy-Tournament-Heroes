@@ -93,6 +93,8 @@ data class TournamentUiState(
     ),
     val lastCompletedTrialResult: TrialResultData? = null,
     val finalRank: Rank? = null,
+    /** The stored best at the moment this run finished, before its own save moved it. */
+    val previousBestTotal: Int = 0,
     val isRunActive: Boolean = false,
     val runId: Long = 0,
     val activeSession: TrialSession? = null,

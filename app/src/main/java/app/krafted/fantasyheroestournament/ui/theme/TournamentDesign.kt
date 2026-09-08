@@ -189,6 +189,12 @@ internal fun Overline(
  * splitting mid-word, so an eight-letter medal name and a four-digit score sit
  * in the same tile — at any screen width and at any accessibility font scale.
  * At the common width nothing shrinks, so tiles beside each other stay matched.
+ *
+ * The style carries [maxSize] even though auto-fitting decides the size actually
+ * drawn. An intrinsic measurement never runs the fit — it lays the text out at
+ * whatever size the style names — so without this a parent asking "how tall are
+ * you?" (a row levelling its tiles with `IntrinsicSize.Min`) is answered for a
+ * default 14sp line, then clips whatever the fit draws above that.
  */
 @Composable
 internal fun FittedText(
@@ -206,7 +212,7 @@ internal fun FittedText(
         text = text,
         modifier = modifier,
         style = TextStyle(color = color, fontFamily = family, fontWeight = weight,
-            letterSpacing = letterSpacing, textAlign = align),
+            fontSize = maxSize, letterSpacing = letterSpacing, textAlign = align),
         maxLines = 1,
         softWrap = false,
         autoSize = TextAutoSize.StepBased(minSize, maxSize, 1.sp)
@@ -243,33 +249,45 @@ internal fun SectionHeader(
 // Backdrop
 // ---------------------------------------------------------------------------
 
-/** Animation is read in the draw pass, so floating motes never recompose the bracket. */
+/**
+ * The ground every tournament page stands on: the supplied hall plate held far
+ * back under a navy wash, an arena spotlight, and a drift of motes. Animation
+ * is read in the draw pass, so the motes never recompose the page above them.
+ */
 @Composable
 internal fun TournamentBackdrop() {
     val loop = rememberInfiniteTransition(label = "tournament atmosphere")
     val drift = loop.animateFloat(0f, 1f, infiniteRepeatable(tween(26000, easing = LinearEasing)), label = "motes")
-    Canvas(Modifier.fillMaxSize().background(Ink)) {
-        drawRect(Brush.verticalGradient(listOf(Color(0xFF16253D), Color(0xFF0A1223), Ink)))
+    Box(Modifier.fillMaxSize().background(Ink)) {
+        // The plate is cool and busy on its own; at this alpha it survives only
+        // as texture — light bars and rings read behind the navy.
+        Image(painterResource(R.drawable.back_2), null, Modifier.fillMaxSize(),
+            contentScale = ContentScale.Crop, alpha = .12f)
+        Canvas(Modifier.fillMaxSize()) {
+            drawRect(Brush.verticalGradient(listOf(Color(0xFF16253D).copy(alpha = .92f),
+                Color(0xFF0A1223).copy(alpha = .95f), Ink)))
 
-        // Arena spotlight, high and to the right, with faint concentric rings.
-        val center = Offset(size.width * .86f, size.height * .14f)
-        drawCircle(Brush.radialGradient(listOf(Gold.copy(alpha = .085f), Color.Transparent),
-            center = center, radius = size.width * .95f), radius = size.width * .95f, center = center)
-        repeat(4) { ring ->
-            drawCircle(Gold.copy(alpha = .04f - ring * .006f), size.width * (.40f + ring * .11f), center,
-                style = Stroke(1.dp.toPx()))
+            // Arena spotlight, high and to the right, with faint concentric rings.
+            val center = Offset(size.width * .86f, size.height * .14f)
+            drawCircle(Brush.radialGradient(listOf(Gold.copy(alpha = .085f), Color.Transparent),
+                center = center, radius = size.width * .95f), radius = size.width * .95f, center = center)
+            repeat(4) { ring ->
+                drawCircle(Gold.copy(alpha = .04f - ring * .006f), size.width * (.40f + ring * .11f), center,
+                    style = Stroke(1.dp.toPx()))
+            }
+
+            repeat(30) { i ->
+                val x = ((i * .618034f) % 1f) * size.width
+                val y = (1f - ((i * .137f + drift.value * (if (i % 2 == 0) 1f else .6f)) % 1f)) * size.height
+                val twinkle = .5f + .5f * sin((drift.value * 2f * PI + i).toFloat())
+                drawCircle(Gold.copy(alpha = .06f + twinkle * .2f),
+                    (if (i % 5 == 0) 1.6f else .9f).dp.toPx(), Offset(x, y))
+            }
+
+            // Sink the lower third so the action dock reads as resting on the page.
+            drawRect(Brush.verticalGradient(listOf(Color.Transparent, Ink.copy(alpha = .85f)),
+                startY = size.height * .62f, endY = size.height))
         }
-
-        repeat(30) { i ->
-            val x = ((i * .618034f) % 1f) * size.width
-            val y = (1f - ((i * .137f + drift.value * (if (i % 2 == 0) 1f else .6f)) % 1f)) * size.height
-            val twinkle = .5f + .5f * sin((drift.value * 2f * PI + i).toFloat())
-            drawCircle(Gold.copy(alpha = .06f + twinkle * .2f), (if (i % 5 == 0) 1.6f else .9f).dp.toPx(), Offset(x, y))
-        }
-
-        // Sink the lower third so the action dock reads as resting on the page.
-        drawRect(Brush.verticalGradient(listOf(Color.Transparent, Ink.copy(alpha = .85f)),
-            startY = size.height * .62f, endY = size.height))
     }
 }
 
@@ -687,6 +705,46 @@ internal fun ScoreTrack(
             drawLine(Ink, Offset(x, 0f), Offset(x, size.height), 3.5.dp.toPx())
             drawLine(Parchment, Offset(x, 1.5.dp.toPx()), Offset(x, size.height - 1.5.dp.toPx()),
                 1.5.dp.toPx(), StrokeCap.Round)
+        }
+    }
+}
+
+/** The medal ladder, cheapest tier first. */
+internal val MedalLadder = listOf(Rank.BRONZE, Rank.SILVER, Rank.GOLD, Rank.CHAMPION)
+
+/** The tiers that sit at a real threshold, so they can be pinned to a track. */
+internal val MedalTiers = MedalLadder.filter { it.threshold > 0 }
+
+/**
+ * The 0-9,000 run track with every medal tier pinned at its real threshold, so
+ * a total reads against the whole ladder at once instead of tier by tier.
+ */
+@Composable
+internal fun MedalTrack(
+    total: Int,
+    modifier: Modifier = Modifier,
+    animate: Boolean = true,
+    height: Dp = 12.dp,
+    durationMillis: Int = 850
+) {
+    var revealed by remember { mutableStateOf(!animate) }
+    LaunchedEffect(Unit) { revealed = true }
+    val progress by animateFloatAsState(if (revealed) (total / MAX_TOTAL).coerceIn(0f, 1f) else 0f,
+        tween(durationMillis, easing = FastOutSlowInEasing), label = "medal progress")
+    Canvas(modifier.fillMaxWidth().height(height)
+        .semantics { progressBarRangeInfo = ProgressBarRangeInfo(total.toFloat(), 0f..MAX_TOTAL) }) {
+        val radius = CornerRadius(size.height / 2f)
+        drawRoundRect(Well, size = size, cornerRadius = radius)
+        drawRoundRect(Color.Black.copy(alpha = .4f), size = size, cornerRadius = radius, style = Stroke(1.dp.toPx()))
+        if (progress > 0f) {
+            val width = (size.width * progress).coerceAtLeast(size.height)
+            drawRoundRect(Brush.horizontalGradient(listOf(GoldDeep, Gold), endX = width),
+                size = Size(width, size.height), cornerRadius = radius)
+        }
+        MedalTiers.forEach { tier ->
+            val x = size.width * (tier.threshold / MAX_TOTAL)
+            drawCircle(Ink, size.height * .34f, Offset(x, size.height / 2f))
+            drawCircle(medalTintOf(tier), size.height * .2f, Offset(x, size.height / 2f))
         }
     }
 }

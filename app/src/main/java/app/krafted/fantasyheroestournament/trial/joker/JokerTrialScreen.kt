@@ -26,9 +26,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -44,6 +42,8 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.krafted.fantasyheroestournament.data.TournamentConfig
 import app.krafted.fantasyheroestournament.data.TrialConfigLoader
+import app.krafted.fantasyheroestournament.domain.Cue
+import app.krafted.fantasyheroestournament.domain.LocalGameFeedback
 import app.krafted.fantasyheroestournament.tournament.HandOffToTournament
 import app.krafted.fantasyheroestournament.tournament.TrialOutcome
 import app.krafted.fantasyheroestournament.tournament.TrialSession
@@ -76,7 +76,6 @@ fun JokerTrialRoute(
         prepared = true
     }
     val state by viewModel.state.collectAsState()
-    val preferences by viewModel.preferences.collectAsState()
     DisposableEffect(lifecycle, viewModel) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_PAUSE) viewModel.pause()
@@ -94,21 +93,22 @@ fun JokerTrialRoute(
             }
         }
     }
-    val haptics = LocalHapticFeedback.current
+    val feedback = LocalGameFeedback.current
     var handledTaps by rememberSaveable { mutableIntStateOf(0) }
     var handledRules by rememberSaveable { mutableIntStateOf(1) }
-    LaunchedEffect(state?.correctTaps, state?.wrongTaps, state?.rules?.size) {
+    var handledFreezes by rememberSaveable { mutableIntStateOf(0) }
+    LaunchedEffect(state?.correctTaps, state?.wrongTaps, state?.rules?.size, state?.freezeBonuses) {
         val current = state ?: return@LaunchedEffect
         val taps = current.correctTaps + current.wrongTaps
-        if (preferences.vibrateOn) {
-            // A flip and a wrong sweet both need to be felt without looking away from the grid.
-            if (current.rules.size > handledRules) haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-            if (taps > handledTaps) haptics.performHapticFeedback(
-                if (current.lastTap?.correct == true) HapticFeedbackType.TextHandleMove
-                else HapticFeedbackType.LongPress)
+        // A flip and a wrong sweet both have to land without looking away from the grid.
+        if (current.rules.size > handledRules) feedback.play(Cue.RULE_FLIP)
+        if (current.freezeBonuses > handledFreezes) feedback.play(Cue.FREEZE)
+        if (taps > handledTaps) {
+            feedback.play(if (current.lastTap?.correct == true) Cue.TAP else Cue.PENALTY)
         }
         handledTaps = taps
         handledRules = current.rules.size
+        handledFreezes = current.freezeBonuses
     }
     // Resolved up front: the hand-off runs from a click, long after composition.
     val timeUp = stringResource(R.string.joker_time_up)

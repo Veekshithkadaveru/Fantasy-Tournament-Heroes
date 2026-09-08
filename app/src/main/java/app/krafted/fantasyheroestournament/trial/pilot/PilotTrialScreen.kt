@@ -26,9 +26,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -44,6 +42,8 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.krafted.fantasyheroestournament.data.TournamentConfig
 import app.krafted.fantasyheroestournament.data.TrialConfigLoader
+import app.krafted.fantasyheroestournament.domain.Cue
+import app.krafted.fantasyheroestournament.domain.LocalGameFeedback
 import app.krafted.fantasyheroestournament.tournament.HandOffToTournament
 import app.krafted.fantasyheroestournament.tournament.TrialOutcome
 import app.krafted.fantasyheroestournament.tournament.TrialSession
@@ -73,7 +73,6 @@ fun PilotTrialRoute(
         prepared = true
     }
     val state by viewModel.state.collectAsState()
-    val preferences by viewModel.preferences.collectAsState()
     DisposableEffect(lifecycle, viewModel) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_PAUSE) viewModel.pause()
@@ -91,16 +90,20 @@ fun PilotTrialRoute(
             }
         }
     }
-    val haptics = LocalHapticFeedback.current
+    val feedback = LocalGameFeedback.current
+    var handledCoins by rememberSaveable { mutableIntStateOf(0) }
     var handledBonuses by rememberSaveable { mutableIntStateOf(0) }
     var handledCrash by rememberSaveable { mutableStateOf(false) }
-    LaunchedEffect(state?.coinStreak, state?.isDead) {
+    LaunchedEffect(state?.coinsCollected, state?.coinStreak, state?.isDead) {
         val current = state ?: return@LaunchedEffect
         val bonuses = current.coinStreak / PilotEngine.STREAK_LENGTH
-        if (preferences.vibrateOn) {
-            if (bonuses > handledBonuses) haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-            if (current.isDead && !handledCrash) haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+        // A run of coins climbs in pitch, so the streak is audible before it pays.
+        if (current.coinsCollected > handledCoins) {
+            feedback.play(Cue.COIN, rate = 1f + current.streakProgress * .055f)
         }
+        if (bonuses > handledBonuses) feedback.play(Cue.STREAK)
+        if (current.isDead && !handledCrash) feedback.play(Cue.CRASH)
+        handledCoins = current.coinsCollected
         handledBonuses = bonuses
         handledCrash = current.isDead
     }

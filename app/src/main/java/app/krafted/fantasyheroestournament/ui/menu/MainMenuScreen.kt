@@ -109,9 +109,7 @@ fun MainMenuScreen(
                     StandingPanel(records, Modifier.padding(top = Space.section))
                 }
 
-                Text(stringResource(R.string.menu_footer), color = Faint.copy(alpha = .7f),
-                    fontSize = TextSize.overline, lineHeight = LineHeight.overline, textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(top = Space.xxl, bottom = Space.xxl))
+                Spacer(Modifier.height(Space.section))
             }
         }
     }

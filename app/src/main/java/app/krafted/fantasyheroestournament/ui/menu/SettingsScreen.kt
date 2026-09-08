@@ -101,34 +101,6 @@ fun SettingsScreen(
         }
 
         Spacer(Modifier.height(Space.section))
-        AnimatedVisibility(entered, enter = fadeIn(tween(500, 240)) + slideInVertically(tween(560, 240)) { 28 }) {
-            Column {
-                SectionHeader(stringResource(R.string.settings_about))
-                Spacer(Modifier.height(Space.lg))
-                Column(Modifier.fillMaxWidth().panel(RoundedCornerShape(Radius.card), elevation = 8.dp)
-                    .padding(Space.xl), verticalArrangement = Arrangement.spacedBy(Space.md)) {
-                    Row(verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(Space.md)) {
-                        CrownEmblem(Modifier.size(30.dp))
-                        Column {
-                            Text(stringResource(R.string.app_name), color = Parchment,
-                                fontFamily = Display, fontSize = TextSize.subhead,
-                                lineHeight = LineHeight.subhead, fontWeight = FontWeight.Bold)
-                            Overline(stringResource(R.string.settings_version), Faint,
-                                Modifier.padding(top = 2.dp))
-                        }
-                    }
-                    HairLine()
-                    CreditLine(stringResource(R.string.settings_credit_offline_label),
-                        stringResource(R.string.settings_credit_offline))
-                    CreditLine(stringResource(R.string.settings_credit_built_label),
-                        stringResource(R.string.settings_credit_built))
-                    CreditLine(stringResource(R.string.settings_credit_art_label),
-                        stringResource(R.string.settings_credit_art))
-                }
-            }
-        }
-        Spacer(Modifier.height(Space.section))
     }
 
     if (confirmReset) TournamentDialog(onDismiss = { confirmReset = false }) {
@@ -240,15 +212,5 @@ private fun PulseGlyph(tint: Color, on: Boolean) {
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun CreditLine(label: String, value: String) {
-    // A share of the row rather than a fixed 96dp, which a larger font scale outgrows.
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Space.md)) {
-        Overline(label, Faint, Modifier.weight(.34f))
-        Text(value, Modifier.weight(.66f), color = Muted, fontSize = TextSize.label,
-            lineHeight = LineHeight.body)
     }
 }

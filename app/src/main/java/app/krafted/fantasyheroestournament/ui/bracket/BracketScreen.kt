@@ -56,8 +56,7 @@ fun BracketScreen(
     onAdvance: () -> Unit,
     onRetry: () -> Unit,
     onLeave: () -> Unit,
-    onMenu: () -> Unit,
-    onRetrySaving: () -> Unit
+    onMenu: () -> Unit
 ) {
     var showRules by rememberSaveable { mutableStateOf(false) }
     var showLeave by rememberSaveable { mutableStateOf(false) }
@@ -66,10 +65,8 @@ fun BracketScreen(
     }
     var entered by remember(state.runId) { mutableStateOf(false) }
     LaunchedEffect(state.runId) { entered = true }
-    val completed = state.finalRank != null
-    // A finished run has nothing left to lose, so it leaves without being asked twice.
-    val leave = { if (completed) onLeave() else showLeave = true }
-    BackHandler(state.isRunActive || completed) { leave() }
+    val leave = { showLeave = true }
+    BackHandler(state.isRunActive) { leave() }
     val scroll = rememberScrollState()
 
     Box(Modifier.fillMaxSize()) {
@@ -77,14 +74,14 @@ fun BracketScreen(
         Column(Modifier.fillMaxSize().safeDrawingPadding(), horizontalAlignment = Alignment.CenterHorizontally) {
             // The masthead stays put; only the bracket beneath it travels.
             Box(Modifier.widthIn(max = ContentWidth).fillMaxWidth().padding(horizontal = PagePadding)) {
-                TopBar(state.isRunActive || completed, leave, { showRules = true })
+                TopBar(state.isRunActive, leave, { showRules = true })
             }
             Box(Modifier.weight(1f)) {
                 Column(Modifier.fillMaxSize().verticalScroll(scroll), horizontalAlignment = Alignment.CenterHorizontally) {
                     Column(Modifier.widthIn(max = ContentWidth).fillMaxWidth().padding(horizontal = PagePadding)) {
                         AnimatedVisibility(entered, enter = fadeIn(tween(650)) + slideInVertically(tween(650)) { 28 }) {
                             Column {
-                                TitleBlock(state)
+                                TitleBlock()
                                 Spacer(Modifier.height(Space.xl))
                                 TotalPanel(state)
                                 Spacer(Modifier.height(Space.section))
@@ -98,7 +95,7 @@ fun BracketScreen(
                         TournamentRound.entries.forEach { round ->
                             val data = state.roundsData.getValue(round)
                             val locked = round.roundIndex > state.currentRound.roundIndex
-                            val active = round == state.currentRound && !completed
+                            val active = round == state.currentRound
                             AnimatedVisibility(entered,
                                 enter = fadeIn(tween(500, 100 + round.roundIndex * 100)) +
                                     slideInVertically(tween(550, 100 + round.roundIndex * 100)) { 36 }) {
@@ -120,7 +117,7 @@ fun BracketScreen(
                 Box(Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(Space.xxl)
                     .background(Brush.verticalGradient(listOf(Color.Transparent, Ink))))
             }
-            ActionDock(state, onStart, onPlay, onAdvance, onRetry, onRetrySaving)
+            ActionDock(state, onStart, onPlay, onAdvance, onRetry)
         }
         if (showRules) TournamentDialog(onDismiss = { showRules = false }) {
             CrownEmblem(Modifier.size(54.dp))
@@ -169,18 +166,13 @@ private fun TopBar(canLeave: Boolean, onLeave: () -> Unit, onInfo: () -> Unit) {
 }
 
 @Composable
-private fun TitleBlock(state: TournamentUiState) {
-    val complete = state.finalRank != null
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Column(Modifier.weight(1f)) {
-            Text(stringResource(if (complete) R.string.tournament_completed_title else R.string.tournament_title),
-                color = Parchment, fontFamily = Display, fontSize = TextSize.title, lineHeight = LineHeight.title,
-                fontWeight = FontWeight.Bold, letterSpacing = (-.6).sp)
-            Text(stringResource(if (complete) R.string.tournament_all_banked else R.string.tournament_description),
-                color = Muted, fontSize = TextSize.body, lineHeight = LineHeight.body,
-                modifier = Modifier.padding(top = Space.sm))
-        }
-        if (complete) CrownEmblem(Modifier.padding(start = Space.md).size(68.dp))
+private fun TitleBlock() {
+    Column {
+        Text(stringResource(R.string.tournament_title), color = Parchment, fontFamily = Display,
+            fontSize = TextSize.title, lineHeight = LineHeight.title, fontWeight = FontWeight.Bold,
+            letterSpacing = (-.6).sp)
+        Text(stringResource(R.string.tournament_description), color = Muted, fontSize = TextSize.body,
+            lineHeight = LineHeight.body, modifier = Modifier.padding(top = Space.sm))
     }
 }
 
@@ -218,12 +210,7 @@ private fun TotalPanel(state: TournamentUiState) {
         Spacer(Modifier.height(Space.md))
         Overline(stringResource(R.string.tournament_trials_banked, banked, TRIALS_PER_RUN), Faint)
 
-        state.finalRank?.let { rank ->
-            Spacer(Modifier.height(Space.md))
-            StatusChip(stringResource(R.string.tournament_rank_earned,
-                rankLabel(rank).uppercase(Locale.getDefault())), Mint)
-        }
-        if (state.finalRank == null && state.lastCompletedTrialResult != null) {
+        if (state.lastCompletedTrialResult != null) {
             val result = state.lastCompletedTrialResult
             AnimatedContent(result, transitionSpec = {
                 (fadeIn(tween(250)) + slideInVertically { it / 2 }) togetherWith fadeOut(tween(100))
@@ -465,61 +452,35 @@ private fun HeroTile(trial: TrialType, score: Int?, next: Boolean, modifier: Mod
  */
 @Composable
 private fun MedalChase(state: TournamentUiState) {
-    val tiers = listOf(Rank.BRONZE, Rank.SILVER, Rank.GOLD, Rank.CHAMPION)
     val total = state.grandTotalScore
-    val nextTier = tiers.firstOrNull { it.threshold > total }
-    val progress by animateFloatAsState(total / MAX_TOTAL, tween(850, easing = FastOutSlowInEasing),
-        label = "medal progress")
+    val nextTier = MedalTiers.firstOrNull { it.threshold > total }
 
     Column(Modifier.fillMaxWidth()) {
         SectionHeader(stringResource(R.string.tournament_medal_path)) {
-            val earned = state.finalRank
-            when {
-                earned != null ->
-                    StatusChip(rankLabel(earned).uppercase(Locale.getDefault()), medalTintOf(earned))
-                nextTier != null -> StatusChip(stringResource(R.string.tournament_medal_next,
-                    rankLabel(nextTier).uppercase(Locale.getDefault())), medalTintOf(nextTier))
-                else -> StatusChip(stringResource(R.string.tournament_medal_pace), Amethyst)
-            }
+            if (nextTier != null) StatusChip(stringResource(R.string.tournament_medal_next,
+                rankLabel(nextTier).uppercase(Locale.getDefault())), medalTintOf(nextTier))
+            else StatusChip(stringResource(R.string.tournament_medal_pace), Amethyst)
         }
         Spacer(Modifier.height(Space.lg))
 
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Space.sm)) {
-            tiers.forEach { tier ->
-                MedalTile(tier,
-                    earned = state.finalRank?.let { it.ordinal >= tier.ordinal } == true,
-                    // Bronze's threshold is zero, so an unscored run would light every tier.
-                    reached = total > 0 && total >= tier.threshold,
-                    modifier = Modifier.weight(1f))
+            MedalLadder.forEach { tier ->
+                // Bronze's threshold is zero, so an unscored run would light every tier.
+                MedalTile(tier, reached = total > 0 && total >= tier.threshold, modifier = Modifier.weight(1f))
             }
         }
 
         Spacer(Modifier.height(Space.lg))
-        Canvas(Modifier.fillMaxWidth().height(12.dp)
-            .semantics { progressBarRangeInfo = ProgressBarRangeInfo(total.toFloat(), 0f..MAX_TOTAL) }) {
-            val radius = CornerRadius(size.height / 2f)
-            drawRoundRect(Well, size = size, cornerRadius = radius)
-            drawRoundRect(Color.Black.copy(alpha = .4f), size = size, cornerRadius = radius, style = Stroke(1.dp.toPx()))
-            if (progress > 0f) {
-                val width = (size.width * progress).coerceAtLeast(size.height)
-                drawRoundRect(Brush.horizontalGradient(listOf(GoldDeep, Gold), endX = width),
-                    size = Size(width, size.height), cornerRadius = radius)
-            }
-            tiers.filter { it.threshold > 0 }.forEach { tier ->
-                val x = size.width * (tier.threshold / MAX_TOTAL)
-                drawCircle(Ink, size.height * .34f, Offset(x, size.height / 2f))
-                drawCircle(medalTintOf(tier), size.height * .2f, Offset(x, size.height / 2f))
-            }
-        }
+        MedalTrack(total)
         Spacer(Modifier.height(Space.md))
         Text(medalHint(state, nextTier), color = Muted, fontSize = TextSize.body, lineHeight = LineHeight.body)
     }
 }
 
 @Composable
-private fun MedalTile(tier: Rank, earned: Boolean, reached: Boolean, modifier: Modifier) {
+private fun MedalTile(tier: Rank, reached: Boolean, modifier: Modifier) {
     val tint = medalTintOf(tier)
-    val lit = earned || reached
+    val lit = reached
     val shape = RoundedCornerShape(Radius.tile)
     Column(modifier.clip(shape)
         .background(if (lit) Brush.verticalGradient(listOf(tint.copy(alpha = .16f), tint.copy(alpha = .04f)))
@@ -545,17 +506,12 @@ private fun MedalTile(tier: Rank, earned: Boolean, reached: Boolean, modifier: M
 @Composable
 private fun ActionDock(
     state: TournamentUiState, onStart: () -> Unit, onPlay: (TrialType) -> Unit,
-    onAdvance: () -> Unit, onRetry: () -> Unit, onRetrySaving: () -> Unit
+    onAdvance: () -> Unit, onRetry: () -> Unit
 ) {
     val round = state.currentRoundData
     val next = round.nextTrial
     val nextRound = TournamentRound.entries.getOrNull(state.currentRound.roundIndex + 1)
-    val complete = state.finalRank != null
-    val saving = state.recordSaveStatus == RecordSaveStatus.SAVING
-    val saveFailed = state.recordSaveStatus == RecordSaveStatus.FAILED
     val label = when {
-        saveFailed -> stringResource(R.string.tournament_save_retry)
-        complete -> stringResource(R.string.tournament_new_run)
         !state.isRunActive -> stringResource(R.string.tournament_start)
         round.status == RoundStatus.FAILED -> stringResource(R.string.tournament_retry, roundLabel(state.currentRound).uppercase(Locale.getDefault()))
         round.isPassed && nextRound != null -> stringResource(R.string.tournament_advance, roundLabel(nextRound).uppercase(Locale.getDefault()))
@@ -563,9 +519,6 @@ private fun ActionDock(
         else -> stringResource(R.string.tournament_start)
     }
     val hint = when {
-        saving -> stringResource(R.string.tournament_saving)
-        saveFailed -> stringResource(R.string.tournament_save_failed)
-        complete -> stringResource(R.string.tournament_saved)
         !state.isRunActive -> stringResource(R.string.tournament_first_hint)
         round.isCompleted -> stringResource(R.string.tournament_progress, 3)
         else -> stringResource(R.string.tournament_trial_hint, (next?.trialIndex ?: 0) + 1, roundLabel(state.currentRound))
@@ -582,9 +535,8 @@ private fun ActionDock(
                 (fadeIn(tween(250)) + slideInVertically(tween(250)) { it / 3 }) togetherWith
                     (fadeOut(tween(120)) + slideOutVertically(tween(120)) { -it / 3 })
             }, label = "next tournament action") { text ->
-                TournamentButton(text, enabled = !saving, onClick = {
+                TournamentButton(text, onClick = {
                     when {
-                        saveFailed -> onRetrySaving()
                         !state.isRunActive -> onStart()
                         round.status == RoundStatus.FAILED -> onRetry()
                         round.isPassed -> onAdvance()
@@ -592,7 +544,7 @@ private fun ActionDock(
                     }
                 })
             }
-            Text(hint, color = if (saveFailed) Rose else Faint, fontSize = TextSize.label,
+            Text(hint, color = Faint, fontSize = TextSize.label,
                 lineHeight = LineHeight.label, textAlign = TextAlign.Center,
                 modifier = Modifier.padding(top = Space.md))
         }
@@ -601,9 +553,7 @@ private fun ActionDock(
 
 @Composable
 private fun medalHint(state: TournamentUiState, nextTier: Rank?): String {
-    val earned = state.finalRank
     return when {
-        earned != null -> stringResource(R.string.tournament_medal_earned_hint, rankLabel(earned))
         state.grandTotalScore == 0 -> stringResource(R.string.tournament_medal_hint)
         nextTier != null -> stringResource(R.string.tournament_medal_gap,
             points(nextTier.threshold - state.grandTotalScore), rankLabel(nextTier))

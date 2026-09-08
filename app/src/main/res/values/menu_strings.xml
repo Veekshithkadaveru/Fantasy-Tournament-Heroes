@@ -16,7 +16,6 @@
     </plurals>
     <string name="menu_no_runs">No medal yet</string>
     <string name="menu_no_runs_body">Finish all nine trials once and your first medal is recorded here.</string>
-    <string name="menu_footer">FULLY OFFLINE · NO ADS · v2.0</string>
 
     <!-- Records -->
     <string name="records_title">RECORDS</string>
@@ -55,12 +54,4 @@
     <string name="settings_reset_confirm_title">Clear every record?</string>
     <string name="settings_reset_confirm_body">Your best medal, grand total, trial bests and run count are erased. Sound and vibration settings stay. This cannot be undone.</string>
     <string name="settings_reset_keep">KEEP MY RECORDS</string>
-    <string name="settings_about">ABOUT</string>
-    <string name="settings_version">VERSION 2.0</string>
-    <string name="settings_credit_offline_label">CONNECTIVITY</string>
-    <string name="settings_credit_offline">Fully offline. No network permissions, no tracking.</string>
-    <string name="settings_credit_built_label">BUILT WITH</string>
-    <string name="settings_credit_built">Kotlin, Jetpack Compose and Compose Canvas.</string>
-    <string name="settings_credit_art_label">ARTWORK</string>
-    <string name="settings_credit_art">Mix_1 asset pack, with effects drawn on Canvas.</string>
 </resources>

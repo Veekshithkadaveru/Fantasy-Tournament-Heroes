@@ -40,8 +40,6 @@
     <string name="tournament_new_run">PLAY ANOTHER TOURNAMENT</string>
     <string name="tournament_first_hint">Your journey begins with the Qualifier.</string>
     <string name="tournament_trial_hint">Trial %1$d of 3 · %2$s</string>
-    <string name="tournament_completed_title">A place among legends.</string>
-    <string name="tournament_rank_earned">%1$s EARNED</string>
     <string name="tournament_rank_bronze">Bronze</string>
     <string name="tournament_rank_silver">Silver</string>
     <string name="tournament_rank_gold">Gold</string>
@@ -53,9 +51,7 @@
     <string name="tournament_medal_pace">CHAMPION PACE</string>
     <string name="tournament_medal_gap">%1$s more points to reach %2$s.</string>
     <string name="tournament_medal_pace_hint">Champion pace. Hold it through the final trial.</string>
-    <string name="tournament_medal_earned_hint">%1$s secured across all nine trials.</string>
     <string name="tournament_trials_banked">%1$d OF %2$d TRIALS BANKED</string>
-    <string name="tournament_all_banked">All nine trials complete. Your scores are banked.</string>
     <string name="tournament_bank_and_leave">End trial &amp; bank current score</string>
     <string name="tournament_info">Tournament rules</string>
     <string name="tournament_rules_title">Earn your crown</string>

@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import app.krafted.fantasyheroestournament.data.IRecordsStore
 import app.krafted.fantasyheroestournament.data.TournamentConfig
 import app.krafted.fantasyheroestournament.data.TrialConfigLoader
+import app.krafted.fantasyheroestournament.domain.Cue
 import app.krafted.fantasyheroestournament.domain.RankCalculator
 import app.krafted.fantasyheroestournament.domain.SoundManager
 import java.io.IOException
@@ -19,7 +20,7 @@ import kotlinx.coroutines.launch
 class TournamentViewModel(
     private val recordsStore: IRecordsStore,
     val tournamentConfig: TournamentConfig = TrialConfigLoader.defaultConfig,
-    private val soundManager: SoundManager? = null
+    val soundManager: SoundManager? = null
 ) : ViewModel() {
     private val sequence = AtomicLong()
     private val _uiState = MutableStateFlow(TournamentUiState(roundsData = createInitialRoundsData()))
@@ -127,9 +128,7 @@ class TournamentViewModel(
                 currentScreen = TournamentScreen.TRIAL_RESULT
             )
         } ?: return false
-        if (score >= 500) soundManager?.playSuccessTone(accepted.userRecords.soundOn)
-        else soundManager?.playFailureTone(accepted.userRecords.soundOn)
-        soundManager?.vibrate(accepted.userRecords.vibrateOn)
+        soundManager?.play(Cue.BANK, accepted.userRecords.soundOn, accepted.userRecords.vibrateOn)
         return true
     }
 
@@ -157,6 +156,8 @@ class TournamentViewModel(
                 state.currentRound != TournamentRound.FINAL -> state.copy(currentScreen = TournamentScreen.ROUND_RESULT)
                 state.roundsData.values.all { it.isCompleted && it.isPassed } -> state.copy(
                     finalRank = RankCalculator.calculateRank(state.grandTotalScore),
+                    // Captured before the save below can raise it.
+                    previousBestTotal = state.userRecords.bestGrandTotal,
                     isRunActive = false,
                     recordSaveStatus = RecordSaveStatus.SAVING,
                     currentScreen = TournamentScreen.FINAL_CEREMONY

@@ -1,0 +1,30 @@
+<resources>
+    <string name="ceremony_eyebrow">THE TOURNAMENT IS DECIDED</string>
+    <string name="ceremony_awarded">%1$s AWARDED</string>
+
+    <string name="ceremony_title_champion">The crown is yours.</string>
+    <string name="ceremony_title_gold">A golden run.</string>
+    <string name="ceremony_title_silver">Silver, hard won.</string>
+    <string name="ceremony_title_bronze">You went the distance.</string>
+
+    <string name="ceremony_citation_champion">Nine trials, three heroes, and not one of them could hold you. The tournament has a new name at the top of it.</string>
+    <string name="ceremony_citation_gold">Gold across the board. Hold this pace one run longer and the crown is next.</string>
+    <string name="ceremony_citation_silver">A strong showing in every arena. Gold is close enough to reach for.</string>
+    <string name="ceremony_citation_bronze">Every legend has a first tournament. All nine trials are behind you now.</string>
+
+    <string name="ceremony_new_record">NEW PERSONAL BEST</string>
+    <string name="ceremony_record_standing">%1$s off your best of %2$s.</string>
+    <string name="ceremony_record_first">Your first tournament on the board.</string>
+    <string name="ceremony_record_beaten">That beats your previous best of %1$s.</string>
+    <string name="ceremony_next_tier">%1$s more points would have earned %2$s.</string>
+    <string name="ceremony_top_tier">Nothing sits above Champion. This is the ceiling.</string>
+
+    <string name="ceremony_run_header">THE RUN, ROUND BY ROUND</string>
+    <string name="ceremony_round_meta">%1$s · %2$s</string>
+    <string name="ceremony_honours_header">HERO HONOURS</string>
+    <string name="ceremony_hero_max">/ 3,000</string>
+    <string name="ceremony_top_hero">TOP HERO</string>
+    <string name="ceremony_hero_accessibility">%1$s paid %2$s points across three rounds.</string>
+
+    <string name="ceremony_menu">MAIN MENU</string>
+</resources>
